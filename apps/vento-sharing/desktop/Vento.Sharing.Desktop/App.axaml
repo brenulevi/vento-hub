@@ -1,0 +1,32 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Vento.Sharing.Desktop.App"
+             xmlns:local="using:Vento.Sharing.Desktop"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <SolidColorBrush x:Key="AppBackground" Color="#12101D" />
+        <SolidColorBrush x:Key="AppSurface" Color="#201B30" />
+        <SolidColorBrush x:Key="AppPanel" Color="#2A233D" />
+        <SolidColorBrush x:Key="AppBorder" Color="#504366" />
+        <SolidColorBrush x:Key="AppAccent" Color="#B59AFF" />
+        <SolidColorBrush x:Key="AppAccentSoft" Color="#684F96" />
+        <SolidColorBrush x:Key="AppText" Color="#F7F2FF" />
+        <SolidColorBrush x:Key="AppMuted" Color="#C5B8D5" />
+        <Color x:Key="SystemAccentColor">#B59AFF</Color>
+    </Application.Resources>
+
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <Application.Styles>
+        <FluentTheme />
+        <Style Selector="Button">
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button:disabled">
+            <Setter Property="Cursor" Value="Arrow" />
+        </Style>
+    </Application.Styles>
+</Application>

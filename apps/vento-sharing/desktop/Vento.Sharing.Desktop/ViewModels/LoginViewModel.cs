@@ -1,0 +1,335 @@
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Net.Http.Headers;
+using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
+using System.IO;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Vento.Sharing.Desktop.Security;
+
+namespace Vento.Sharing.Desktop.ViewModels;
+
+public sealed class LoginViewModel : ViewModelBase
+{
+    private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private string _serverAddress = "http://127.0.0.1:5080";
+    private string _hubAddress = "http://127.0.0.1:5081";
+    private string _identifier = string.Empty;
+    private string _password = string.Empty;
+    private string _message = string.Empty;
+    private bool _isBusy;
+    private bool _showServerSettings;
+    private bool _rememberCredentials;
+    private bool _hasSavedCredentials;
+
+    public event Action<string, string, string, string>? Authenticated;
+
+    public string ServerAddress
+    {
+        get => _serverAddress;
+        set => SetProperty(ref _serverAddress, value);
+    }
+
+    public string HubAddress
+    {
+        get => _hubAddress;
+        set => SetProperty(ref _hubAddress, value);
+    }
+
+    public string Identifier
+    {
+        get => _identifier;
+        set => SetProperty(ref _identifier, value);
+    }
+
+    public string Password
+    {
+        get => _password;
+        set => SetProperty(ref _password, value);
+    }
+
+    public bool RememberCredentials
+    {
+        get => _rememberCredentials;
+        set => SetProperty(ref _rememberCredentials, value);
+    }
+
+    public bool HasSavedCredentials
+    {
+        get => _hasSavedCredentials;
+        private set => SetProperty(ref _hasSavedCredentials, value);
+    }
+
+    public string Message
+    {
+        get => _message;
+        private set => SetProperty(ref _message, value);
+    }
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set => SetProperty(ref _isBusy, value);
+    }
+
+    public bool ShowServerSettings
+    {
+        get => _showServerSettings;
+        private set
+        {
+            if (SetProperty(ref _showServerSettings, value))
+                OnPropertyChanged(nameof(ServerSettingsLabel));
+        }
+    }
+
+    public string ServerSettingsLabel => ShowServerSettings
+        ? "▾  Configurações do servidor"
+        : "▸  Configurações do servidor";
+
+    public IAsyncRelayCommand LoginCommand { get; }
+    public IAsyncRelayCommand BrowserLoginCommand { get; }
+    public IAsyncRelayCommand OpenRegistrationCommand { get; }
+    public IRelayCommand ToggleServerSettingsCommand { get; }
+    public IRelayCommand ForgetCredentialsCommand { get; }
+
+    public LoginViewModel()
+    {
+        LoginCommand = new AsyncRelayCommand(AuthenticateAsync, () => !IsBusy);
+        BrowserLoginCommand = new AsyncRelayCommand(() => StartBrowserLoginAsync(false), () => !IsBusy);
+        OpenRegistrationCommand = new AsyncRelayCommand(() => StartBrowserLoginAsync(true), () => !IsBusy);
+        ToggleServerSettingsCommand = new RelayCommand(() => ShowServerSettings = !ShowServerSettings);
+        ForgetCredentialsCommand = new RelayCommand(ForgetCredentials);
+
+        try
+        {
+            var saved = SavedCredentialsStore.Load();
+            if (saved is not null)
+            {
+                Identifier = saved.Identifier;
+                Password = saved.Password;
+                ServerAddress = saved.ServerAddress;
+                HubAddress = saved.HubAddress;
+                RememberCredentials = true;
+                HasSavedCredentials = true;
+            }
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or CryptographicException or System.Text.Json.JsonException)
+        {
+            Message = "Não foi possível ler as credenciais salvas. Você pode apagá-las e entrar novamente.";
+            HasSavedCredentials = true;
+        }
+    }
+
+    private void ForgetCredentials()
+    {
+        try
+        {
+            SavedCredentialsStore.Clear();
+            Identifier = string.Empty;
+            Password = string.Empty;
+            RememberCredentials = false;
+            HasSavedCredentials = false;
+            Message = "Credenciais salvas removidas deste computador.";
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            Message = "Não foi possível remover as credenciais salvas.";
+        }
+    }
+
+    public async Task StartBrowserLoginAsync(bool register = false)
+    {
+        if (!Uri.TryCreate(HubAddress.TrimEnd('/'), UriKind.Absolute, out var hub)
+            || (hub.Scheme != Uri.UriSchemeHttp && hub.Scheme != Uri.UriSchemeHttps)
+            || !Uri.TryCreate(ServerAddress.TrimEnd('/'), UriKind.Absolute, out var server)
+            || (server.Scheme != Uri.UriSchemeHttp && server.Scheme != Uri.UriSchemeHttps))
+        {
+            Message = "Configure endereços válidos para o hub e a API Vento.";
+            ShowServerSettings = true;
+            return;
+        }
+
+        IsBusy = true;
+        LoginCommand.NotifyCanExecuteChanged();
+        BrowserLoginCommand.NotifyCanExecuteChanged();
+        OpenRegistrationCommand.NotifyCanExecuteChanged();
+        Message = "Aguardando login no navegador...";
+        try
+        {
+            var verifier = Base64Url(RandomNumberGenerator.GetBytes(32));
+            var challenge = Base64Url(SHA256.HashData(Encoding.ASCII.GetBytes(verifier)));
+            var state = Base64Url(RandomNumberGenerator.GetBytes(24));
+            using var portPicker = new TcpListener(IPAddress.Loopback, 0);
+            portPicker.Start();
+            var port = ((IPEndPoint)portPicker.LocalEndpoint).Port;
+            portPicker.Stop();
+
+            using var listener = new HttpListener();
+            listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+            listener.Start();
+            var callback = $"http://127.0.0.1:{port}/callback";
+            var connect = new Uri(new Uri(hub.ToString().TrimEnd('/') + "/"),
+                $"desktop/conectar?callback={Uri.EscapeDataString(callback)}&challenge={challenge}&state={state}");
+            var target = register
+                ? new Uri(new Uri(hub.ToString().TrimEnd('/') + "/"), "criar-conta?returnUrl=" + Uri.EscapeDataString(connect.PathAndQuery))
+                : connect;
+            if (Process.Start(new ProcessStartInfo(target.AbsoluteUri) { UseShellExecute = true }) is null)
+            {
+                Message = "Não foi possível abrir o navegador.";
+                return;
+            }
+
+            var context = await listener.GetContextAsync().WaitAsync(TimeSpan.FromMinutes(2));
+            var valid = context.Request.Url?.AbsolutePath == "/callback"
+                && context.Request.QueryString["state"] == state;
+            var code = valid ? context.Request.QueryString["code"] : null;
+            var message = valid && !string.IsNullOrWhiteSpace(code)
+                ? "Login concluído. Pode voltar ao Vento Sharing."
+                : "Não foi possível validar a conexão. Volte ao aplicativo e tente novamente.";
+            var html = $"<!doctype html><html lang=\"pt-BR\"><meta charset=\"utf-8\"><title>Vento Sharing</title><body><h1>{message}</h1></body></html>";
+            var bytes = Encoding.UTF8.GetBytes(html);
+            context.Response.ContentType = "text/html; charset=utf-8";
+            context.Response.ContentLength64 = bytes.Length;
+            await context.Response.OutputStream.WriteAsync(bytes);
+            context.Response.Close();
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                Message = "Retorno do navegador inválido.";
+                return;
+            }
+
+            var baseUri = new Uri(server.ToString().TrimEnd('/') + "/");
+            using var exchange = await Client.PostAsJsonAsync(new Uri(baseUri, "auth/desktop/token"),
+                new { code, codeVerifier = verifier });
+            if (!exchange.IsSuccessStatusCode)
+            {
+                Message = "O código de login expirou ou já foi usado. Tente novamente.";
+                return;
+            }
+            var tokens = await exchange.Content.ReadFromJsonAsync<LoginResponse>();
+            if (string.IsNullOrWhiteSpace(tokens?.AccessToken))
+            {
+                Message = "O servidor não retornou uma sessão válida.";
+                return;
+            }
+            await FinishLoginAsync(baseUri, tokens.AccessToken);
+        }
+        catch (Exception error) when (error is Win32Exception or InvalidOperationException or PlatformNotSupportedException or HttpListenerException or SocketException or IOException or HttpRequestException or TimeoutException or TaskCanceledException)
+        {
+            Message = error is TimeoutException ? "O login no navegador expirou. Tente novamente." : "Não foi possível concluir o login no navegador.";
+        }
+        finally
+        {
+            IsBusy = false;
+            LoginCommand.NotifyCanExecuteChanged();
+            BrowserLoginCommand.NotifyCanExecuteChanged();
+            OpenRegistrationCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    private async Task AuthenticateAsync()
+    {
+        if (!Uri.TryCreate(ServerAddress.TrimEnd('/'), UriKind.Absolute, out var server)
+            || (server.Scheme != Uri.UriSchemeHttp && server.Scheme != Uri.UriSchemeHttps))
+        {
+            Message = "Informe um endereço HTTP ou HTTPS válido para o servidor.";
+            return;
+        }
+
+        var identifier = Identifier.Trim();
+        if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(Password))
+        {
+            Message = "Preencha o usuário ou e-mail e a senha.";
+            return;
+        }
+
+        IsBusy = true;
+        LoginCommand.NotifyCanExecuteChanged();
+        Message = "Entrando...";
+
+        try
+        {
+            var baseUri = new Uri(server.ToString().TrimEnd('/') + "/");
+            using var login = await Client.PostAsJsonAsync(new Uri(baseUri, "auth/login"),
+                new { identifier, password = Password });
+            if (!login.IsSuccessStatusCode)
+            {
+                Message = login.StatusCode == HttpStatusCode.Unauthorized
+                    ? "Usuário, e-mail ou senha incorretos."
+                    : $"Falha no login ({(int)login.StatusCode}).";
+                return;
+            }
+
+            var tokens = await login.Content.ReadFromJsonAsync<LoginResponse>();
+            if (string.IsNullOrEmpty(tokens?.AccessToken))
+            {
+                Message = "O servidor não retornou uma sessão válida.";
+                return;
+            }
+
+            await FinishLoginAsync(baseUri, tokens.AccessToken, directLogin: true);
+        }
+        catch (HttpRequestException)
+        {
+            Message = "Não foi possível conectar ao servidor Vento.";
+        }
+        catch (TaskCanceledException)
+        {
+            Message = "O servidor demorou para responder.";
+        }
+        finally
+        {
+            IsBusy = false;
+            LoginCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private async Task FinishLoginAsync(Uri baseUri, string accessToken, bool directLogin = false)
+    {
+        using var profileRequest = new HttpRequestMessage(HttpMethod.Get, new Uri(baseUri, "auth/me"));
+        profileRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using var profileResponse = await Client.SendAsync(profileRequest);
+        profileResponse.EnsureSuccessStatusCode();
+        var account = await profileResponse.Content.ReadFromJsonAsync<AccountResponse>();
+        if (account is null)
+        {
+            Message = "O servidor não retornou os dados da conta.";
+            return;
+        }
+        if (directLogin)
+        {
+            try
+            {
+                if (RememberCredentials)
+                {
+                    SavedCredentialsStore.Save(new SavedCredentials(Identifier.Trim(), Password,
+                        baseUri.ToString(), HubAddress));
+                    HasSavedCredentials = true;
+                }
+                else
+                {
+                    SavedCredentialsStore.Clear();
+                    HasSavedCredentials = false;
+                }
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or CryptographicException)
+            {
+                Message = "Login realizado, mas não foi possível salvar as credenciais neste computador.";
+            }
+        }
+        Password = string.Empty;
+        Authenticated?.Invoke(account.Username, account.Email, accessToken, baseUri.ToString());
+    }
+
+    private sealed record LoginResponse(string AccessToken);
+    private sealed record AccountResponse(string Username, string Email);
+}

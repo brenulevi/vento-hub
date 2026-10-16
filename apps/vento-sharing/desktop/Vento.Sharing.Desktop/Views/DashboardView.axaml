@@ -1,0 +1,549 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Vento.Sharing.Desktop.ViewModels"
+             x:Class="Vento.Sharing.Desktop.Views.DashboardView"
+             x:DataType="vm:MainViewModel"
+             Background="{DynamicResource AppBackground}">
+    <Grid ColumnDefinitions="Auto,*,Auto">
+        <Border Grid.Column="0" Width="84" Background="{DynamicResource AppSurface}"
+                BorderBrush="{DynamicResource AppBorder}" BorderThickness="0,0,1,0">
+            <Grid RowDefinitions="Auto,*,Auto" RowSpacing="18" Margin="10,18">
+                <Button Grid.Row="0" Width="48" Height="48" CornerRadius="13"
+                        Padding="0" BorderThickness="0" Background="{DynamicResource AppAccentSoft}"
+                        HorizontalAlignment="Center" Command="{Binding ShowHomeCommand}"
+                        ToolTip.Tip="Voltar ao início">
+                    <Viewbox Width="32" Height="32">
+                        <Canvas Width="48" Height="48">
+                            <Path Data="M 9,15 C 17,5 32,4 40,14 C 48,25 40,39 28,40 C 17,41 9,34 10,25 C 11,17 18,12 25,14 C 33,16 35,24 31,29 C 27,34 20,31 20,26 C 20,23 22,21 25,21"
+                                  Stroke="{DynamicResource AppAccent}" StrokeThickness="4.5"
+                                  StrokeLineCap="Round" Fill="Transparent" />
+                            <Ellipse Width="4" Height="4" Canvas.Left="23" Canvas.Top="19"
+                                     Fill="{DynamicResource AppAccent}" />
+                        </Canvas>
+                    </Viewbox>
+                </Button>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="12" HorizontalAlignment="Center">
+                        <ItemsControl ItemsSource="{Binding Rooms}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><StackPanel Spacing="12" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RoomTileViewModel">
+                                    <Button Command="{Binding OpenCommand}" Width="52" Height="52"
+                                            Padding="0" Background="{DynamicResource AppPanel}" BorderBrush="{DynamicResource AppBorder}"
+                                            BorderThickness="1" CornerRadius="12"
+                                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                            ToolTip.Tip="{Binding Title}">
+                                        <Grid Width="46" Height="46">
+                                            <Border CornerRadius="10" ClipToBounds="True">
+                                                <Grid>
+                                                    <TextBlock Text="{Binding Initial}" FontSize="20" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource AppAccent}" HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" IsVisible="{Binding HasNoImage}" />
+                                                    <Image Source="{Binding Image}" IsVisible="{Binding HasImage}"
+                                                           Stretch="UniformToFill" />
+                                                </Grid>
+                                            </Border>
+                                            <Border CornerRadius="10" BorderBrush="{DynamicResource AppAccent}" BorderThickness="2"
+                                                    IsVisible="{Binding IsSelected}" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Command="{Binding OpenRoomComposerCommand}"
+                                Width="52" Height="52" HorizontalAlignment="Center"
+                                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                Padding="0" Background="Transparent" Foreground="{DynamicResource AppAccent}"
+                                BorderBrush="{DynamicResource AppAccent}" BorderThickness="1.5" CornerRadius="12"
+                                ToolTip.Tip="Criar ou entrar em uma sala">
+                            <Grid Width="24" Height="24">
+                                <Border Width="20" Height="2" Background="{DynamicResource AppAccent}"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Border Width="2" Height="20" Background="{DynamicResource AppAccent}"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </ScrollViewer>
+                <Button Grid.Row="2" Width="56" Height="64" Background="{DynamicResource AppPanel}"
+                        BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                        CornerRadius="12" HorizontalAlignment="Center"
+                        Command="{Binding ToggleProfileCommand}" ToolTip.Tip="Abrir perfil">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="3">
+                        <Border Width="34" Height="34" Background="{DynamicResource AppAccentSoft}" CornerRadius="17"
+                                ClipToBounds="True">
+                            <Grid>
+                                <TextBlock Text="{Binding AvatarLetter}" HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" Foreground="{DynamicResource AppText}" FontWeight="Bold"
+                                           IsVisible="{Binding HasNoAvatarImage}" />
+                                <Image Source="{Binding AvatarImage}" IsVisible="{Binding HasAvatarImage}"
+                                       Stretch="UniformToFill" />
+                            </Grid>
+                        </Border>
+                        <TextBlock Text="{Binding Username}" FontSize="10" Foreground="{DynamicResource AppMuted}"
+                                   Width="46" TextTrimming="CharacterEllipsis" TextAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="28" Spacing="22">
+                <StackPanel IsVisible="{Binding IsHome}" Spacing="24">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="INÍCIO" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppAccent}" />
+                        <TextBlock Text="Vento Sharing" FontSize="30" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppText}" />
+                        <TextBlock Text="Suas salas e seus amigos em um só lugar."
+                                   FontSize="14" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Salas com pessoas agora" FontSize="20" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppText}" />
+                        <TextBlock Text="Nenhuma das suas salas tem pessoas conectadas agora."
+                                   IsVisible="{Binding HasNoActiveRooms}" Foreground="{DynamicResource AppMuted}"
+                                   TextWrapping="Wrap" />
+                        <ItemsControl ItemsSource="{Binding ActiveRooms}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RoomTileViewModel">
+                                    <Button Command="{Binding OpenCommand}" Width="270" Height="205"
+                                            Margin="0,0,14,14" Padding="12" Background="{DynamicResource AppPanel}"
+                                            BorderBrush="{DynamicResource AppBorder}" BorderThickness="1" CornerRadius="14"
+                                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                        <Grid RowDefinitions="*,Auto,Auto" RowSpacing="8">
+                                            <Border Background="{DynamicResource AppBackground}" CornerRadius="9">
+                                                <TextBlock Text="Nenhuma transmissão ativa" FontSize="12"
+                                                           Foreground="{DynamicResource AppMuted}" HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center" TextAlignment="Center" />
+                                            </Border>
+                                            <TextBlock Grid.Row="1" Text="{Binding Title}" FontSize="16"
+                                                       FontWeight="SemiBold" Foreground="{DynamicResource AppText}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Row="2" Text="{Binding OnlineCount, StringFormat='Conectados agora: {0}'}"
+                                                       FontSize="12" Foreground="{DynamicResource AppAccent}" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Salas recentes" FontSize="20" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppText}" />
+                        <TextBlock Text="Abra uma sala na sidebar para vê-la aqui."
+                                   IsVisible="{Binding HasNoRecentRooms}" Foreground="{DynamicResource AppMuted}"
+                                   TextWrapping="Wrap" />
+                        <ItemsControl ItemsSource="{Binding RecentRooms}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RoomTileViewModel">
+                                    <Button Command="{Binding OpenCommand}" Width="210" Height="82"
+                                            Margin="0,0,12,12" Padding="14" Background="{DynamicResource AppPanel}"
+                                            BorderBrush="{DynamicResource AppBorder}" BorderThickness="1" CornerRadius="12"
+                                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource AppText}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding OnlineCount, StringFormat='Conectados agora: {0}'}"
+                                                       FontSize="12" Foreground="{DynamicResource AppMuted}" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <Border Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                            CornerRadius="14" Padding="20">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Amigos adicionados" FontSize="20" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AppText}" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <TextBox x:Name="FriendUsernameInput"
+                                         Text="{Binding FriendUsernameInput, Mode=TwoWay}"
+                                         PlaceholderText="Username do amigo" />
+                                <Button Grid.Column="1" Content="Adicionar" Command="{Binding AddFriendCommand}"
+                                        Padding="16,8" />
+                            </Grid>
+                            <TextBlock Text="Você ainda não adicionou amigos."
+                                       IsVisible="{Binding HasNoFriends}" Foreground="{DynamicResource AppMuted}" />
+                            <ItemsControl ItemsSource="{Binding Friends}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:FriendViewModel">
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Margin="0,4">
+                                            <Border Width="34" Height="34" CornerRadius="17" Background="{DynamicResource AppAccentSoft}">
+                                                <TextBlock Text="{Binding Initial}" Foreground="{DynamicResource AppText}"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="{Binding Username}" Foreground="{DynamicResource AppText}"
+                                                       VerticalAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding FriendMessage}" Foreground="#F5B97C"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel IsVisible="{Binding IsProfilePage}" Spacing="22" MaxWidth="780">
+                    <StackPanel Spacing="7">
+                        <TextBlock Text="SUA CONTA" FontSize="11" FontWeight="Bold"
+                                   Foreground="{DynamicResource AppAccent}" />
+                        <TextBlock Text="Perfil" FontSize="30" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppText}" />
+                        <TextBlock Text="Personalize sua conta e o visual do Vento Sharing."
+                                   Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Border Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}"
+                            BorderThickness="1" CornerRadius="14" Padding="22">
+                        <StackPanel Spacing="14">
+                            <TextBlock Text="Foto do perfil" FontSize="19" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AppText}" />
+                            <Border Width="92" Height="92" CornerRadius="46"
+                                    Background="{DynamicResource AppAccentSoft}" ClipToBounds="True"
+                                    HorizontalAlignment="Left">
+                                <Grid>
+                                    <TextBlock Text="{Binding AvatarLetter}" FontSize="34"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource AppText}"
+                                               IsVisible="{Binding HasNoAvatarImage}" />
+                                    <Image Source="{Binding AvatarImage}" Stretch="UniformToFill"
+                                           IsVisible="{Binding HasAvatarImage}" />
+                                </Grid>
+                            </Border>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Content="Alterar foto" Click="OnUploadAccountImageClick" />
+                                <Button Content="Remover foto" Click="OnRemoveAccountImageClick"
+                                        IsVisible="{Binding HasAvatarImage}" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding ImageMessage}" Foreground="#F5B97C"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}"
+                            BorderThickness="1" CornerRadius="14" Padding="22">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Informações da conta" FontSize="19" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AppText}" />
+                            <TextBlock Text="Nome de usuário" Foreground="{DynamicResource AppMuted}" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <TextBox x:Name="ProfileUsernameInput"
+                                         Text="{Binding EditableUsername, Mode=TwoWay}" MaxLength="32" />
+                                <Button Grid.Column="1" Content="Salvar" Command="{Binding SaveUsernameCommand}"
+                                        Padding="18,8" />
+                            </Grid>
+                            <TextBlock Text="3 a 32 caracteres: letras, números, ponto, _ ou -."
+                                       FontSize="12" Foreground="{DynamicResource AppMuted}" />
+                            <TextBlock Text="E-mail" Foreground="{DynamicResource AppMuted}"
+                                       Margin="0,8,0,0" />
+                            <TextBlock Text="{Binding Email}" Foreground="{DynamicResource AppText}" />
+                            <TextBlock Text="{Binding ProfileMessage}" Foreground="#F5B97C"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}"
+                            BorderThickness="1" CornerRadius="14" Padding="22">
+                        <StackPanel Spacing="13">
+                            <TextBlock Text="Cor do layout" FontSize="19" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AppText}" />
+                            <TextBlock Text="{Binding SelectedThemeName, StringFormat='Tema atual: {0}'}"
+                                       Foreground="{DynamicResource AppMuted}" />
+                            <ItemsControl ItemsSource="{Binding ThemeChoices}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ThemeChoiceViewModel">
+                                        <Button Command="{Binding SelectCommand}" Width="136" Height="66"
+                                                Margin="0,0,10,10" Background="{Binding PreviewBrush}"
+                                                BorderBrush="{DynamicResource AppText}" CornerRadius="10">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                           Foreground="#10131C" TextAlignment="Center" />
+                                                <TextBlock Text="Selecionado" FontSize="11" Foreground="#10131C"
+                                                           TextAlignment="Center" IsVisible="{Binding IsSelected}" />
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel IsVisible="{Binding IsRoomSelected}" Spacing="22">
+                    <StackPanel Spacing="7">
+                        <TextBlock Text="SALA" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AppAccent}" />
+                        <TextBlock Text="{Binding SelectedRoom.Title}" FontSize="30" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding SelectedRoom.Role}" FontSize="14" Foreground="{DynamicResource AppMuted}" />
+                    </StackPanel>
+
+                    <Border IsVisible="{Binding IsParticipantsInlineVisible}"
+                            Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                            CornerRadius="12" Padding="16">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="{Binding ParticipantsCount, StringFormat='Participantes: {0}/6'}"
+                                       FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource AppText}" />
+                            <TextBlock Text="Ninguém compartilhando" Foreground="{DynamicResource AppMuted}"
+                                       IsVisible="{Binding HasNoActiveSharer}" />
+                            <ItemsControl ItemsSource="{Binding Participants}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:RoomParticipantViewModel">
+                                        <Grid ColumnDefinitions="*,Auto" Margin="0,3">
+                                            <TextBlock Text="{Binding Username}" Foreground="{DynamicResource AppText}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7">
+                                                <TextBlock Text="Anfitrião" Foreground="#F5C57A"
+                                                           IsVisible="{Binding IsOwner}" />
+                                                <TextBlock Text="● Compartilhando" Foreground="{DynamicResource AppAccent}"
+                                                           IsVisible="{Binding IsSharing}" />
+                                                <TextBlock Text="{Binding Status}" Foreground="{DynamicResource AppMuted}"
+                                                           IsVisible="{Binding !IsSharing}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                            CornerRadius="14" Padding="22" IsVisible="{Binding SelectedRoom.IsOwner}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Configurações da sala" FontSize="18" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AppText}" />
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+                                <Border Width="72" Height="72" Background="{DynamicResource AppPanel}" CornerRadius="12"
+                                        ClipToBounds="True">
+                                    <Grid>
+                                        <TextBlock Text="{Binding SelectedRoom.Initial}" FontSize="26"
+                                                   Foreground="{DynamicResource AppAccent}" HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" IsVisible="{Binding SelectedRoom.HasNoImage}" />
+                                        <Image Source="{Binding SelectedRoom.Image}" Stretch="UniformToFill"
+                                               IsVisible="{Binding SelectedRoom.HasImage}" />
+                                    </Grid>
+                                </Border>
+                                <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
+                                    <Button Content="Escolher imagem" Click="OnUploadRoomImageClick"
+                                            IsVisible="{Binding SelectedRoom.IsOwner}" HorizontalAlignment="Left" />
+                                    <Button Content="Remover imagem" Click="OnRemoveRoomImageClick"
+                                            IsVisible="{Binding SelectedRoom.CanRemoveImage}"
+                                            Background="Transparent" Foreground="{DynamicResource AppMuted}" HorizontalAlignment="Left" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="PNG ou JPEG, até 2 MB e 2048 × 2048 pixels."
+                                       Foreground="{DynamicResource AppMuted}" FontSize="12" TextWrapping="Wrap"
+                                       IsVisible="{Binding SelectedRoom.IsOwner}" />
+                            <TextBlock Text="{Binding ImageMessage}" Foreground="#F5B97C" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                            CornerRadius="14" Padding="22">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Convide seus amigos" FontSize="18" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AppText}" />
+                            <TextBlock Text="Compartilhe este código para convidar alguém à sala."
+                                       Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+                            <TextBox Text="{Binding SelectedRoom.InviteCode}" IsReadOnly="True"
+                                     HorizontalAlignment="Left" MinWidth="180" />
+                            <TextBlock Text="Link para assistir pelo navegador" Foreground="{DynamicResource AppMuted}"
+                                       Margin="0,8,0,0" />
+                            <TextBox Text="{Binding SelectedRoomWebUrl}" IsReadOnly="True"
+                                     HorizontalAlignment="Stretch" />
+                            <TextBlock Text="{Binding HubLinkHint}" Foreground="{DynamicResource AppMuted}"
+                                       FontSize="12" TextWrapping="Wrap" />
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Content="Copiar link" Click="OnCopyWebRoomLinkClick" />
+                                <Button Content="Abrir no navegador" Command="{Binding OpenWebRoomCommand}" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding SelectedRoom.ParticipantCount, StringFormat='Participantes: {0}/6'}"
+                                       Foreground="{DynamicResource AppMuted}" FontSize="12" />
+                            <TextBlock Text="{Binding SelectedRoom.OnlineCount, StringFormat='Conectados agora: {0}'}"
+                                       Foreground="{DynamicResource AppAccent}" FontSize="12" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                            CornerRadius="14" Padding="22">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Transmissão" FontSize="18" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AppText}" />
+                            <TextBlock Text="Qualquer participante pode transmitir pelo desktop. Escolha uma tela ou janela na captura; o áudio permanece desligado."
+                                       Foreground="{DynamicResource AppMuted}" FontSize="13" TextWrapping="Wrap" />
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Content="Compartilhar tela" Command="{Binding StartSharingCommand}"
+                                        Background="{DynamicResource AppAccent}" />
+                                <Button Content="Parar transmissão" Command="{Binding StopSharingCommand}" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding ShareMessage}" Foreground="{DynamicResource AppAccent}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <TextBlock Text="{Binding Message}" Foreground="#F5B97C" TextWrapping="Wrap" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Column="2" Width="224"
+                IsVisible="{Binding IsParticipantsSidebarVisible}" Background="{DynamicResource AppSurface}"
+                BorderBrush="{DynamicResource AppBorder}" BorderThickness="1,0,0,0">
+            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="16" Margin="14,22">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="PARTICIPANTES" FontSize="11" FontWeight="Bold"
+                               Foreground="{DynamicResource AppAccent}" />
+                    <TextBlock Text="{Binding ParticipantsCount, StringFormat='Na sala: {0}/6'}"
+                               FontSize="12" Foreground="{DynamicResource AppMuted}" />
+                </StackPanel>
+
+                <Border Grid.Row="1" Background="{DynamicResource AppPanel}" BorderBrush="{DynamicResource AppBorder}"
+                        BorderThickness="1" CornerRadius="10" Padding="11">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="TRANSMISSÃO" FontSize="10" FontWeight="Bold"
+                                   Foreground="{DynamicResource AppMuted}" />
+                        <TextBlock Text="Ninguém compartilhando" FontSize="12"
+                                   Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap"
+                                   IsVisible="{Binding HasNoActiveSharer}" />
+                        <TextBlock Text="Compartilhamento ativo" FontSize="12"
+                                   Foreground="{DynamicResource AppAccent}" IsVisible="{Binding HasActiveSharer}" />
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding Participants}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RoomParticipantViewModel">
+                                <Border Background="{DynamicResource AppPanel}" BorderBrush="{DynamicResource AppBorder}"
+                                        BorderThickness="1" CornerRadius="11" Padding="9"
+                                        Margin="0,0,0,9">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+                                        <Border Width="34" Height="34" CornerRadius="17"
+                                                Background="{DynamicResource AppAccentSoft}" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Initial}" Foreground="{DynamicResource AppText}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Spacing="3" MinWidth="0">
+                                            <TextBlock Text="{Binding Username}" FontSize="13"
+                                                       FontWeight="SemiBold" Foreground="{DynamicResource AppText}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="Anfitrião" FontSize="11" Foreground="#F5C57A"
+                                                       IsVisible="{Binding IsOwner}" />
+                                            <TextBlock Text="● Compartilhando" FontSize="11"
+                                                       FontWeight="SemiBold" Foreground="{DynamicResource AppAccent}"
+                                                       IsVisible="{Binding IsSharing}" />
+                                            <TextBlock Text="{Binding Status}" FontSize="11"
+                                                       Foreground="{DynamicResource AppMuted}" IsVisible="{Binding !IsSharing}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <Border x:Name="ProfileDismissLayer" Grid.ColumnSpan="3"
+                IsVisible="{Binding IsProfileOpen}" Background="Transparent"
+                PointerPressed="OnProfileDismissLayerPressed" />
+
+        <Border Grid.Column="1" IsVisible="{Binding IsProfileOpen}"
+                Width="290" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                Margin="14,14,14,18" Background="{DynamicResource AppPanel}" BorderBrush="{DynamicResource AppBorder}"
+                BorderThickness="1" CornerRadius="14" Padding="18">
+            <StackPanel Spacing="13">
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Seu perfil" FontSize="18" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppText}" />
+                    <Button Grid.Column="1" Content="✕" Command="{Binding CloseProfileCommand}"
+                            Background="Transparent" Foreground="{DynamicResource AppMuted}" Padding="8,2" />
+                </Grid>
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                    <Border Width="44" Height="44" Background="{DynamicResource AppAccentSoft}" CornerRadius="22"
+                            ClipToBounds="True">
+                        <Grid>
+                            <TextBlock Text="{Binding AvatarLetter}" FontSize="18" FontWeight="Bold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource AppText}" IsVisible="{Binding HasNoAvatarImage}" />
+                            <Image Source="{Binding AvatarImage}" IsVisible="{Binding HasAvatarImage}"
+                                   Stretch="UniformToFill" />
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Username}" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppText}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="Conta Vento" FontSize="12" Foreground="{DynamicResource AppAccent}" />
+                    </StackPanel>
+                </Grid>
+                <Border Height="1" Background="{DynamicResource AppBorder}" />
+                <Button Content="Visualizar perfil" Command="{Binding OpenProfilePageCommand}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                <StackPanel Spacing="4">
+                    <TextBlock Text="E-mail" FontSize="11" Foreground="{DynamicResource AppMuted}" />
+                    <TextBlock Text="{Binding Email}" FontSize="13" Foreground="{DynamicResource AppText}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Salas em que participa" FontSize="11" Foreground="{DynamicResource AppMuted}" />
+                    <TextBlock Text="{Binding RoomCount}" FontSize="13" Foreground="{DynamicResource AppText}" />
+                </StackPanel>
+                <Button Content="Sair da conta" Command="{Binding LogoutCommand}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Background="{DynamicResource AppPanel}" Foreground="{DynamicResource AppText}"
+                        BorderBrush="{DynamicResource AppBorder}" CornerRadius="9" Margin="0,4,0,0" />
+            </StackPanel>
+        </Border>
+        <Border Grid.ColumnSpan="3" IsVisible="{Binding IsRoomComposerOpen}"
+                Background="#C2050B17" PointerPressed="OnRoomComposerBackdropPressed" />
+
+        <Border x:Name="RoomComposerModal" Grid.ColumnSpan="3" IsVisible="{Binding IsRoomComposerOpen}"
+                Width="{Binding ComposerWidth}" MaxHeight="{Binding ComposerMaxHeight}"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                CornerRadius="16" Padding="24">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Spacing="13">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="Criar ou entrar em uma sala" FontSize="20" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
+                            <Button Grid.Column="1" Content="✕" Command="{Binding CloseRoomComposerCommand}"
+                                    Background="Transparent" Foreground="{DynamicResource AppMuted}" />
+                        </Grid>
+                        <TextBlock Text="Nova sala" Foreground="{DynamicResource AppMuted}" FontWeight="SemiBold" />
+                        <TextBox x:Name="RoomNameInput" Text="{Binding NewRoomName, Mode=TwoWay}"
+                                 PlaceholderText="Nome da sala" MaxLength="80" />
+                        <Button Content="Criar sala" Command="{Binding CreateRoomCommand}"
+                                Background="Transparent" Foreground="{DynamicResource AppAccent}"
+                                BorderBrush="{DynamicResource AppAccent}" BorderThickness="1.5"
+                                HorizontalAlignment="Left" Padding="18,9" />
+                        <Border Height="1" Background="{DynamicResource AppBorder}" Margin="0,8" />
+                        <TextBlock Text="Entrar por convite" Foreground="{DynamicResource AppMuted}" FontWeight="SemiBold" />
+                        <TextBox x:Name="InviteCodeInput" Text="{Binding InviteCodeInput, Mode=TwoWay}"
+                                 PlaceholderText="Código de 10 caracteres" MaxLength="10" />
+                        <Button Content="Entrar na sala" Command="{Binding JoinRoomCommand}"
+                                HorizontalAlignment="Left" Padding="18,9" />
+                        <TextBlock Text="{Binding Message}" Foreground="#F5B97C" TextWrapping="Wrap" />
+                    </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

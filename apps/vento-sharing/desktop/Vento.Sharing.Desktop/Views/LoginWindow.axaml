@@ -1,0 +1,96 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Vento.Sharing.Desktop.ViewModels"
+        x:Class="Vento.Sharing.Desktop.Views.LoginWindow"
+        x:DataType="vm:LoginViewModel"
+        Width="1100" Height="620" MinWidth="420" MinHeight="420"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource AppBackground}"
+        Title="Vento Sharing · Entrar">
+    <Grid Margin="20">
+        <Border x:Name="LoginCard" Width="1080"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                CornerRadius="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid x:Name="LoginContentGrid" ColumnDefinitions="1*,1*" RowDefinitions="Auto">
+                <StackPanel Grid.Column="0" Margin="34" Spacing="14" VerticalAlignment="Center">
+                    <TextBlock Text="VENTO" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppAccent}" />
+                    <TextBlock Text="Entre no Sharing" FontSize="30" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
+                    <TextBlock Text="Sua conta Vento dá acesso às sessões privadas."
+                               FontSize="14" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+
+                    <TextBlock Text="Usuário ou e-mail" Foreground="{DynamicResource AppMuted}" Margin="0,10,0,0" />
+                    <TextBox x:Name="IdentifierInput" Text="{Binding Identifier, Mode=TwoWay}"
+                             PlaceholderText="seu_usuario ou voce@exemplo.com" />
+
+                    <TextBlock Text="Senha" Foreground="{DynamicResource AppMuted}" />
+                    <TextBox x:Name="PasswordInput" Text="{Binding Password, Mode=TwoWay}" PasswordChar="●"
+                             PlaceholderText="Sua senha" />
+
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
+                        <CheckBox Content="Salvar login neste computador"
+                                  IsChecked="{Binding RememberCredentials, Mode=TwoWay}"
+                                  Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="Esquecer" Command="{Binding ForgetCredentialsCommand}"
+                                IsVisible="{Binding HasSavedCredentials}" Background="Transparent"
+                                Foreground="{DynamicResource AppAccent}" Padding="8,4" />
+                    </Grid>
+
+                    <Button Content="Entrar" Command="{Binding LoginCommand}"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Background="{DynamicResource AppAccent}" Foreground="#08111D" Margin="0,8,0,0" />
+                    <TextBlock Text="{Binding Message}" Foreground="#F5B97C"
+                               TextWrapping="Wrap" MinHeight="36" />
+                </StackPanel>
+
+                <Border x:Name="BrowserPanel" Grid.Column="1" Margin="0,16,16,16"
+                        Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                        CornerRadius="14" Padding="28">
+                    <StackPanel Spacing="14">
+                        <TextBlock Text="PELO NAVEGADOR" FontSize="11" FontWeight="Bold"
+                                   Foreground="{DynamicResource AppAccent}" />
+                        <TextBlock Text="Continue com sua conta Vento"
+                                   FontSize="23" FontWeight="SemiBold" Foreground="{DynamicResource AppText}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="Entre ou crie sua conta no hub. O aplicativo recebe a sessão automaticamente."
+                                   FontSize="13" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+
+                        <Button Content="Entrar pelo navegador" Command="{Binding BrowserLoginCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Margin="0,8,0,0" />
+                        <Button Content="Criar conta Vento" Command="{Binding OpenRegistrationCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+
+                        <TextBlock Text="Google e Discord serão adicionados ao vínculo da conta."
+                                   FontSize="12" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+
+                        <Button Content="{Binding ServerSettingsLabel}"
+                                Command="{Binding ToggleServerSettingsCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="{DynamicResource AppPanel}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                                CornerRadius="10" Padding="12,10" Margin="0,8,0,0" />
+                        <Border IsVisible="{Binding ShowServerSettings}"
+                                HorizontalAlignment="Stretch" Background="{DynamicResource AppSurface}"
+                                BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
+                                CornerRadius="10" Padding="12">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Endereço da API Vento" Foreground="{DynamicResource AppMuted}" />
+                                <TextBox Text="{Binding ServerAddress, Mode=TwoWay}"
+                                         PlaceholderText="http://127.0.0.1:5080" />
+                                <TextBlock Text="Endereço do hub Vento" Foreground="{DynamicResource AppMuted}"
+                                           Margin="0,8,0,0" />
+                                <TextBox Text="{Binding HubAddress, Mode=TwoWay}"
+                                         PlaceholderText="http://127.0.0.1:5081" />
+                                <TextBlock Text="Altere esses endereços somente se os serviços estiverem em outra máquina."
+                                           FontSize="12" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</Window>
