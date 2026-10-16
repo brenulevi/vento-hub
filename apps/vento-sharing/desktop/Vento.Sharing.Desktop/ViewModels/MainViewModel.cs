@@ -7,7 +7,10 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Platform;
 using CommunityToolkit.Mvvm.Input;
 using Avalonia.Threading;
 using Avalonia.Media.Imaging;
@@ -23,7 +26,13 @@ public sealed class MainViewModel : ViewModelBase
     private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(15) };
     private readonly Uri _server;
     private readonly Uri _hub;
-    private DesktopPublisherSession? _publisher;
+    private NativePublisherSession? _publisher;
+    private DesktopRoomViewer? _viewer;
+    private long _viewerGeneration;
+    private WriteableBitmap? _sharedScreenImage;
+    private int _screenWidth;
+    private int _screenHeight;
+    private string _viewerMessage = string.Empty;
     private Guid? _sharingRoomId;
     private Guid? _sharingSessionId;
     private bool _shareBusy;
@@ -48,7 +57,7 @@ public sealed class MainViewModel : ViewModelBase
     private string _username;
     private string _editableUsername;
     private string _profileMessage = string.Empty;
-    private string _selectedThemeId = "aurora";
+    private string _selectedThemeId = "graphite";
     private bool _isSavingTheme;
     private bool _isWideLayout = true;
 
@@ -88,6 +97,7 @@ public sealed class MainViewModel : ViewModelBase
         LogoutCommand = new RelayCommand(() =>
         {
             _ = StopSharingAsync();
+            StopRoomViewer();
             _refreshTimer.Stop();
             if (SelectedRoom is not null)
                 _ = LeaveRoomAsync(SelectedRoom.Id);
@@ -121,7 +131,11 @@ public sealed class MainViewModel : ViewModelBase
     public bool IsSharing
     {
         get => _isSharing;
-        private set => SetProperty(ref _isSharing, value);
+        private set
+        {
+            if (SetProperty(ref _isSharing, value))
+                NotifySharePresentationState();
+        }
     }
     public string ShareMessage
     {
@@ -171,6 +185,31 @@ public sealed class MainViewModel : ViewModelBase
     public int ParticipantsCount => Participants.Count;
     public bool HasActiveSharer => Participants.Any(participant => participant.IsSharing);
     public bool HasNoActiveSharer => !HasActiveSharer;
+    public WriteableBitmap? SharedScreenImage
+    {
+        get => _sharedScreenImage;
+        private set
+        {
+            if (SetProperty(ref _sharedScreenImage, value))
+            {
+                OnPropertyChanged(nameof(HasSharedScreen));
+                OnPropertyChanged(nameof(HasNoSharedScreen));
+                NotifySharePresentationState();
+            }
+        }
+    }
+    public bool HasSharedScreen => SharedScreenImage is not null;
+    public bool HasNoSharedScreen => SharedScreenImage is null;
+    public bool ShowLocalSharingStatus => IsSharing && !HasSharedScreen;
+    public bool ShowWaitingForStream => !IsSharing && HasActiveSharer && !HasSharedScreen;
+    public bool ShowIdleStreamPlaceholder => !HasSharedScreen && !IsSharing && !HasActiveSharer;
+    public string ViewerMessage
+    {
+        get => _viewerMessage;
+        private set => SetProperty(ref _viewerMessage, value);
+    }
+    public bool IsPublisherActive => _publisher is not null;
+    public bool IsPublisherInactive => _publisher is null;
     public bool IsParticipantsSidebarVisible => IsRoomSelected && _isWideLayout;
     public bool IsParticipantsInlineVisible => IsRoomSelected && !_isWideLayout;
     public bool HasNoRooms => Rooms.Count == 0;
@@ -441,13 +480,21 @@ public sealed class MainViewModel : ViewModelBase
         StopSharingCommand.NotifyCanExecuteChanged();
     }
 
+    private void NotifyPublisherChanged()
+    {
+        OnPropertyChanged(nameof(IsPublisherActive));
+        OnPropertyChanged(nameof(IsPublisherInactive));
+        StartSharingCommand.NotifyCanExecuteChanged();
+        StopSharingCommand.NotifyCanExecuteChanged();
+    }
+
     private async Task StartSharingAsync()
     {
         var room = SelectedRoom;
         if (room is null || _publisher is not null || _shareBusy) return;
         SetShareBusy(true);
         ShareMessage = "Preparando a transmissão…";
-        DesktopPublisherSession? session = null;
+        NativePublisherSession? session = null;
         Guid? acquiredSessionId = null;
         try
         {
@@ -464,24 +511,26 @@ public sealed class MainViewModel : ViewModelBase
                 throw new InvalidOperationException("O servidor não autorizou a transmissão.");
             acquiredSessionId = connection.SessionId;
             if (SelectedRoom?.Id != room.Id) return;
-            session = new DesktopPublisherSession(connection.Url, connection.Token);
+            session = new NativePublisherSession(connection.Url, connection.Token);
             var currentSession = session;
             session.StateChanged += state => Dispatcher.UIThread.Post(() => _ = HandlePublisherStateAsync(currentSession, state));
             _publisher = session;
+            NotifyPublisherChanged();
             _sharingRoomId = room.Id;
             _sharingSessionId = acquiredSessionId;
-            session.OpenBrowser();
-            ShareMessage = "Na janela de captura, clique em Selecionar tela e escolha o que transmitir.";
+            session.Start();
+            ShareMessage = "Escolha uma tela ou janela no seletor do sistema.";
         }
         catch (Exception error) when (error is HttpRequestException or TaskCanceledException
-            or IOException or HttpListenerException or InvalidOperationException
+            or IOException or InvalidOperationException or PlatformNotSupportedException
             or System.ComponentModel.Win32Exception)
         {
             if (session is not null) await session.DisposeAsync();
             _publisher = null;
+            NotifyPublisherChanged();
             _sharingRoomId = null;
             _sharingSessionId = null;
-            ShareMessage = "Não foi possível iniciar. Confira a API, o LiveKit e o navegador padrão.";
+            ShareMessage = "Não foi possível iniciar. Confira a API, o LiveKit e a captura de tela do sistema.";
         }
         finally
         {
@@ -491,7 +540,7 @@ public sealed class MainViewModel : ViewModelBase
         }
     }
 
-    private async Task HandlePublisherStateAsync(DesktopPublisherSession session, string state)
+    private async Task HandlePublisherStateAsync(NativePublisherSession session, string state)
     {
         if (_publisher != session) return;
         if (state is "pending" or "publishing")
@@ -507,16 +556,12 @@ public sealed class MainViewModel : ViewModelBase
             if (_sharingRoomId is Guid roomId && SelectedRoom?.Id == roomId)
                 await LoadParticipantsAsync(roomId);
         }
-        else if (state == "error")
-        {
-            ShareMessage = "A captura foi cancelada ou falhou. Tente novamente na janela de captura.";
-        }
-        else if (state is "stopped" or "lost")
+        else if (state == "failed")
         {
             await StopSharingAsync();
-            ShareMessage = state == "lost"
-                ? "A janela de captura perdeu a conexão. Transmissão encerrada."
-                : "Transmissão encerrada.";
+            ShareMessage = session.ErrorMessage.Contains("cancelada", StringComparison.OrdinalIgnoreCase)
+                ? "Seleção de tela cancelada."
+                : "A captura nativa falhou. Confira o portal de tela e o PipeWire.";
         }
     }
 
@@ -525,15 +570,20 @@ public sealed class MainViewModel : ViewModelBase
         if (_publisher is null || _shareBusy) return;
         SetShareBusy(true);
         var session = _publisher;
+        var roomId = _sharingRoomId;
+        var lease = _sharingSessionId;
         _publisher = null;
+        NotifyPublisherChanged();
         IsSharing = false;
+        ClearSharedScreen();
+        ViewerMessage = string.Empty;
         try
         {
-            await session.DisposeAsync();
-            if (_sharingRoomId is Guid sharedRoomId && _sharingSessionId is Guid lease)
-                await ReleaseBroadcastPresenceAsync(sharedRoomId, lease);
-            if (_sharingRoomId is Guid roomId && SelectedRoom?.Id == roomId)
-                await LoadParticipantsAsync(roomId);
+            await Task.Run(async () => await session.DisposeAsync());
+            if (roomId is Guid sharedRoomId && lease is Guid sessionId)
+                await ReleaseBroadcastPresenceAsync(sharedRoomId, sessionId);
+            if (roomId is Guid activeRoomId && SelectedRoom?.Id == activeRoomId)
+                await LoadParticipantsAsync(activeRoomId);
             _sharingRoomId = null;
             _sharingSessionId = null;
             ShareMessage = "Transmissão encerrada.";
@@ -568,6 +618,89 @@ public sealed class MainViewModel : ViewModelBase
         catch (Exception error) when (error is HttpRequestException or TaskCanceledException) { }
     }
 
+    private void StopRoomViewer()
+    {
+        ++_viewerGeneration;
+        var previous = _viewer;
+        _viewer = null;
+        ClearSharedScreen();
+        if (previous is not null) _ = previous.DisposeAsync();
+    }
+
+    private async Task StartRoomViewerAsync(Guid roomId)
+    {
+        StopRoomViewer();
+        var generation = _viewerGeneration;
+        DesktopRoomViewer? viewer = null;
+        ViewerMessage = string.Empty;
+        try
+        {
+            using var request = AuthorizedRequest(HttpMethod.Post, $"rooms/{roomId}/media-token");
+            using var response = await Client.SendAsync(request);
+            response.EnsureSuccessStatusCode();
+            var connection = await response.Content.ReadFromJsonAsync<MediaConnectionResponse>();
+            if (connection is null || connection.CanPublish)
+                throw new InvalidOperationException("Token de visualização inválido.");
+            if (generation != _viewerGeneration || SelectedRoom?.Id != roomId) return;
+
+            viewer = new DesktopRoomViewer(connection.Url, connection.Token);
+            var currentViewer = viewer;
+            viewer.FrameReceived += (width, height, pixels) =>
+                Dispatcher.UIThread.Post(() => ShowViewerFrame(currentViewer, width, height, pixels));
+            _viewer = viewer;
+            await viewer.StartAsync();
+        }
+        catch (Exception error) when (error is HttpRequestException or TaskCanceledException
+            or InvalidOperationException or IOException)
+        {
+            var remainsSelected = generation == _viewerGeneration && SelectedRoom?.Id == roomId;
+            if (viewer is not null && _viewer == viewer) StopRoomViewer();
+            if (remainsSelected)
+                ViewerMessage = "Não foi possível carregar o vídeo da sala.";
+        }
+    }
+
+    private void ShowViewerFrame(DesktopRoomViewer viewer, int width, int height, byte[]? pixels)
+    {
+        if (_viewer != viewer) return;
+        if (pixels is null)
+        {
+            ClearSharedScreen();
+            return;
+        }
+        if (!HasActiveSharer && !IsSharing)
+        {
+            ClearSharedScreen();
+            return;
+        }
+        if (width is < 1 or > 3840 || height is < 1 or > 2160 || pixels.Length < width * height * 4)
+            return;
+        if (SharedScreenImage is null || width != _screenWidth || height != _screenHeight)
+        {
+            ClearSharedScreen();
+            _screenWidth = width;
+            _screenHeight = height;
+            SharedScreenImage = new WriteableBitmap(new PixelSize(width, height), new Vector(96, 96),
+                PixelFormat.Bgra8888, AlphaFormat.Opaque);
+        }
+        using (var framebuffer = SharedScreenImage!.Lock())
+        {
+            var rowBytes = width * 4;
+            for (var row = 0; row < height; row++)
+                Marshal.Copy(pixels, row * rowBytes, IntPtr.Add(framebuffer.Address, row * framebuffer.RowBytes), rowBytes);
+        }
+        OnPropertyChanged(nameof(SharedScreenImage));
+    }
+
+    private void ClearSharedScreen()
+    {
+        var previous = SharedScreenImage;
+        SharedScreenImage = null;
+        _screenWidth = 0;
+        _screenHeight = 0;
+        previous?.Dispose();
+    }
+
     private void SelectRoom(RoomTileViewModel room)
     {
         if (_sharingRoomId.HasValue && _sharingRoomId != room.Id)
@@ -584,12 +717,14 @@ public sealed class MainViewModel : ViewModelBase
         Participants.Clear();
         NotifyParticipantsChanged();
         _ = LoadParticipantsAsync(room.Id);
+        _ = StartRoomViewerAsync(room.Id);
         _ = RefreshRoomsAsync();
     }
 
     private void ShowHome()
     {
         _ = StopSharingAsync();
+        StopRoomViewer();
         var previousRoomId = SelectedRoom?.Id;
         SelectedRoom = null;
         IsProfilePage = false;
@@ -604,6 +739,7 @@ public sealed class MainViewModel : ViewModelBase
     private void OpenProfilePage()
     {
         _ = StopSharingAsync();
+        StopRoomViewer();
         var previousRoomId = SelectedRoom?.Id;
         SelectedRoom = null;
         IsProfilePage = true;
@@ -830,6 +966,14 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ParticipantsCount));
         OnPropertyChanged(nameof(HasActiveSharer));
         OnPropertyChanged(nameof(HasNoActiveSharer));
+        NotifySharePresentationState();
+    }
+
+    private void NotifySharePresentationState()
+    {
+        OnPropertyChanged(nameof(ShowLocalSharingStatus));
+        OnPropertyChanged(nameof(ShowWaitingForStream));
+        OnPropertyChanged(nameof(ShowIdleStreamPlaceholder));
     }
 
     private async Task LoadFriendsAsync()

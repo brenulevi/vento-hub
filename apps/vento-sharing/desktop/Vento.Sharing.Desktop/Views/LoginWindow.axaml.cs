@@ -1,5 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Threading;
 using Vento.Sharing.Desktop.ViewModels;
 
 namespace Vento.Sharing.Desktop.Views;
@@ -16,11 +20,13 @@ public partial class LoginWindow : Window
         _loginContent = Content;
         IdentifierInput.KeyDown += SubmitLoginOnEnter;
         PasswordInput.KeyDown += SubmitLoginOnEnter;
+        Loaded += (_, _) => UpdateLayoutForViewport();
         SizeChanged += (_, _) =>
         {
-            if (_dashboard is null) UpdateLayoutForWidth();
+            if (_dashboard is null) UpdateLayoutForViewport();
             else _dashboard.SetViewportSize(Bounds.Width, Bounds.Height);
         };
+        LoginFormPanel.LayoutUpdated += (_, _) => UpdateLoginScroll();
     }
 
     private void SubmitLoginOnEnter(object? sender, KeyEventArgs args)
@@ -42,8 +48,7 @@ public partial class LoginWindow : Window
         Content = _loginContent;
         DataContext = login;
         Title = "Vento Sharing · Entrar";
-        if (Bounds.Width > 0)
-            UpdateLayoutForWidth();
+        UpdateLayoutForViewport();
     }
 
     public void ShowDashboard(MainViewModel dashboard)
@@ -54,15 +59,57 @@ public partial class LoginWindow : Window
         dashboard.SetViewportSize(Bounds.Width, Bounds.Height);
     }
 
-    private void UpdateLayoutForWidth()
+    private void UpdateLayoutForViewport()
     {
-        LoginCard.Width = System.Math.Max(0, System.Math.Min(1080, Bounds.Width - 40));
-        LoginCard.MaxHeight = System.Math.Max(0, Bounds.Height - 40);
-        var compact = Bounds.Width < 760;
-        LoginContentGrid.ColumnDefinitions = new ColumnDefinitions(compact ? "1*" : "1*,1*");
-        LoginContentGrid.RowDefinitions = new RowDefinitions(compact ? "Auto,Auto" : "Auto");
+        if (LoginRootGrid is null || LoginFormPanel is null || BrowserPanel is null || LoginLeftHost is null
+            || LoginFormCenterHost is null)
+            return;
+
+        var width = ClientSize.Width > 0 ? ClientSize.Width : Bounds.Width;
+        var height = ClientSize.Height > 0 ? ClientSize.Height : Bounds.Height;
+        if (height <= 0) return;
+
+        var compact = width < 760;
+        LoginRootGrid.ColumnDefinitions = compact ? new ColumnDefinitions("1*") : new ColumnDefinitions("*,380");
+        LoginRootGrid.RowDefinitions = compact ? new RowDefinitions("Auto,*") : new RowDefinitions("*");
+
+        Grid.SetColumn(LoginLeftHost, 0);
+        Grid.SetRow(LoginLeftHost, 0);
         Grid.SetColumn(BrowserPanel, compact ? 0 : 1);
         Grid.SetRow(BrowserPanel, compact ? 1 : 0);
-        BrowserPanel.Margin = compact ? new Avalonia.Thickness(16, 0, 16, 16) : new Avalonia.Thickness(0, 16, 16, 16);
+
+        LoginFormPanel.Margin = compact ? new Thickness(24, 20, 24, 12) : new Thickness(48, 32);
+        LoginFormPanel.HorizontalAlignment = compact ? HorizontalAlignment.Stretch : HorizontalAlignment.Center;
+        BrowserPanel.Padding = compact ? new Thickness(24, 20) : new Thickness(32);
+
+        Dispatcher.UIThread.Post(SyncLoginFormCenterHeight, DispatcherPriority.Background);
+    }
+
+    private void SyncLoginFormCenterHeight()
+    {
+        if (LoginFormScroll is null || LoginFormCenterHost is null)
+            return;
+
+        var viewport = LoginFormScroll.Viewport.Height;
+        LoginFormCenterHost.MinHeight = viewport > 0 ? viewport : 0;
+        UpdateLoginScroll();
+    }
+
+    private void UpdateLoginScroll()
+    {
+        if (LoginFormScroll is null || LoginFormCenterHost is null)
+            return;
+
+        var viewport = LoginFormScroll.Viewport.Height;
+        if (viewport <= 0)
+        {
+            LoginFormScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+            return;
+        }
+
+        LoginFormScroll.VerticalScrollBarVisibility =
+            LoginFormCenterHost.Bounds.Height > viewport + 1
+                ? ScrollBarVisibility.Auto
+                : ScrollBarVisibility.Disabled;
     }
 }

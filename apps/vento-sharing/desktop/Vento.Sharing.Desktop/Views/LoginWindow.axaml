@@ -3,94 +3,96 @@
         xmlns:vm="using:Vento.Sharing.Desktop.ViewModels"
         x:Class="Vento.Sharing.Desktop.Views.LoginWindow"
         x:DataType="vm:LoginViewModel"
-        Width="1100" Height="620" MinWidth="420" MinHeight="420"
+        Width="960" Height="600" MinWidth="420" MinHeight="420"
         WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource AppBackground}"
+        Background="{DynamicResource AppRail}"
         Title="Vento Sharing · Entrar">
-    <Grid Margin="20">
-        <Border x:Name="LoginCard" Width="1080"
-                HorizontalAlignment="Center" VerticalAlignment="Center"
-                Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
-                CornerRadius="20">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <Grid x:Name="LoginContentGrid" ColumnDefinitions="1*,1*" RowDefinitions="Auto">
-                <StackPanel Grid.Column="0" Margin="34" Spacing="14" VerticalAlignment="Center">
-                    <TextBlock Text="VENTO" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource AppAccent}" />
-                    <TextBlock Text="Entre no Sharing" FontSize="30" FontWeight="SemiBold"
-                               Foreground="{DynamicResource AppText}" TextWrapping="Wrap" />
-                    <TextBlock Text="Sua conta Vento dá acesso às sessões privadas."
-                               FontSize="14" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+    <Grid x:Name="LoginRootGrid" ColumnDefinitions="*,380" RowDefinitions="*"
+          HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <Grid x:Name="LoginLeftHost" Grid.Column="0" Grid.Row="0"
+              HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <ScrollViewer x:Name="LoginFormScroll" HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Disabled">
+                <Grid x:Name="LoginFormCenterHost" HorizontalAlignment="Stretch">
+                    <StackPanel x:Name="LoginFormPanel" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                Margin="48,32" Spacing="16" MaxWidth="480" MinWidth="280">
+                        <Border Width="56" Height="56" CornerRadius="28" Background="{DynamicResource AppAccent}"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="V" FontSize="28" FontWeight="Bold" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Bem-vindo de volta!" FontSize="26" FontWeight="Bold"
+                                   Foreground="{DynamicResource AppText}" />
+                        <TextBlock Text="Estamos muito animados em te ver novamente."
+                                   FontSize="15" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
 
-                    <TextBlock Text="Usuário ou e-mail" Foreground="{DynamicResource AppMuted}" Margin="0,10,0,0" />
-                    <TextBox x:Name="IdentifierInput" Text="{Binding Identifier, Mode=TwoWay}"
-                             PlaceholderText="seu_usuario ou voce@exemplo.com" />
+                        <TextBlock Text="E-mail ou usuário" Foreground="{DynamicResource AppMuted}" Margin="0,12,0,0"
+                                   FontSize="12" FontWeight="Bold" />
+                        <TextBox x:Name="IdentifierInput" Text="{Binding Identifier, Mode=TwoWay}"
+                                 PlaceholderText="seu_usuario ou voce@exemplo.com" />
 
-                    <TextBlock Text="Senha" Foreground="{DynamicResource AppMuted}" />
-                    <TextBox x:Name="PasswordInput" Text="{Binding Password, Mode=TwoWay}" PasswordChar="●"
-                             PlaceholderText="Sua senha" />
+                        <TextBlock Text="Senha" Foreground="{DynamicResource AppMuted}" FontSize="12" FontWeight="Bold" />
+                        <TextBox x:Name="PasswordInput" Text="{Binding Password, Mode=TwoWay}" PasswordChar="●"
+                                 PlaceholderText="Sua senha" />
 
-                    <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
-                        <CheckBox Content="Salvar login neste computador"
-                                  IsChecked="{Binding RememberCredentials, Mode=TwoWay}"
-                                  Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center" />
-                        <Button Grid.Column="1" Content="Esquecer" Command="{Binding ForgetCredentialsCommand}"
-                                IsVisible="{Binding HasSavedCredentials}" Background="Transparent"
-                                Foreground="{DynamicResource AppAccent}" Padding="8,4" />
-                    </Grid>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                            <CheckBox Content="Salvar login neste computador"
+                                      IsChecked="{Binding RememberCredentials, Mode=TwoWay}"
+                                      Foreground="{DynamicResource AppMuted}" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Classes="link" Content="Esquecer"
+                                    Command="{Binding ForgetCredentialsCommand}"
+                                    IsVisible="{Binding HasSavedCredentials}" />
+                        </Grid>
 
-                    <Button Content="Entrar" Command="{Binding LoginCommand}"
-                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                            Background="{DynamicResource AppAccent}" Foreground="#08111D" Margin="0,8,0,0" />
-                    <TextBlock Text="{Binding Message}" Foreground="#F5B97C"
-                               TextWrapping="Wrap" MinHeight="36" />
-                </StackPanel>
-
-                <Border x:Name="BrowserPanel" Grid.Column="1" Margin="0,16,16,16"
-                        Background="{DynamicResource AppSurface}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
-                        CornerRadius="14" Padding="28">
-                    <StackPanel Spacing="14">
-                        <TextBlock Text="PELO NAVEGADOR" FontSize="11" FontWeight="Bold"
-                                   Foreground="{DynamicResource AppAccent}" />
-                        <TextBlock Text="Continue com sua conta Vento"
-                                   FontSize="23" FontWeight="SemiBold" Foreground="{DynamicResource AppText}"
-                                   TextWrapping="Wrap" />
-                        <TextBlock Text="Entre ou crie sua conta no hub. O aplicativo recebe a sessão automaticamente."
-                                   FontSize="13" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
-
-                        <Button Content="Entrar pelo navegador" Command="{Binding BrowserLoginCommand}"
+                        <Button Classes="primary" Content="Entrar" Command="{Binding LoginCommand}"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                                 Margin="0,8,0,0" />
-                        <Button Content="Criar conta Vento" Command="{Binding OpenRegistrationCommand}"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                        <TextBlock Text="{Binding Message}" Foreground="{DynamicResource AppWarning}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </Grid>
 
-                        <TextBlock Text="Google e Discord serão adicionados ao vínculo da conta."
-                                   FontSize="12" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
+        <Border x:Name="BrowserPanel" Grid.Column="1" Grid.Row="0"
+                Background="{DynamicResource AppBackground}" Padding="32"
+                VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <StackPanel x:Name="BrowserContentPanel" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                Spacing="14" MaxWidth="320">
+                        <TextBlock Text="Conta Vento" FontSize="12" FontWeight="Bold"
+                                   Foreground="{DynamicResource AppMuted}" />
+                        <TextBlock Text="Entrar pelo navegador"
+                                   FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource AppText}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="Use o hub para login ou cadastro. O app recebe a sessão automaticamente."
+                                   FontSize="14" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
 
-                        <Button Content="{Binding ServerSettingsLabel}"
+                        <Button Content="Abrir login no navegador" Command="{Binding BrowserLoginCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,8,0,0" />
+                        <Button Classes="link" Content="Criar conta" Command="{Binding OpenRegistrationCommand}"
+                                HorizontalAlignment="Left" />
+
+                        <Border Height="1" Background="{DynamicResource AppBorder}" Margin="0,16" />
+
+                        <Button Classes="ghost" Content="{Binding ServerSettingsLabel}"
                                 Command="{Binding ToggleServerSettingsCommand}"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                Background="{DynamicResource AppPanel}" BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
-                                CornerRadius="10" Padding="12,10" Margin="0,8,0,0" />
-                        <Border IsVisible="{Binding ShowServerSettings}"
-                                HorizontalAlignment="Stretch" Background="{DynamicResource AppSurface}"
-                                BorderBrush="{DynamicResource AppBorder}" BorderThickness="1"
-                                CornerRadius="10" Padding="12">
+                                Padding="0" Foreground="{DynamicResource AppLink}" />
+                        <Border IsVisible="{Binding ShowServerSettings}" Padding="0,8,0,0">
                             <StackPanel Spacing="8">
-                                <TextBlock Text="Endereço da API Vento" Foreground="{DynamicResource AppMuted}" />
+                                <TextBlock Text="API Vento" Foreground="{DynamicResource AppMuted}" FontSize="12"
+                                           FontWeight="Bold" />
                                 <TextBox Text="{Binding ServerAddress, Mode=TwoWay}"
                                          PlaceholderText="http://127.0.0.1:5080" />
-                                <TextBlock Text="Endereço do hub Vento" Foreground="{DynamicResource AppMuted}"
-                                           Margin="0,8,0,0" />
+                                <TextBlock Text="Hub Vento" Foreground="{DynamicResource AppMuted}" FontSize="12"
+                                           FontWeight="Bold" Margin="0,8,0,0" />
                                 <TextBox Text="{Binding HubAddress, Mode=TwoWay}"
                                          PlaceholderText="http://127.0.0.1:5081" />
-                                <TextBlock Text="Altere esses endereços somente se os serviços estiverem em outra máquina."
-                                           FontSize="12" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
-                </Border>
             </Grid>
-            </ScrollViewer>
         </Border>
     </Grid>
 </Window>

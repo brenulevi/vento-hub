@@ -14,7 +14,7 @@ public sealed record UpdateThemeRequest(string? ThemeId);
 
 public static class AccountProfileEndpoints
 {
-    private static readonly string[] Themes = ["aurora", "ocean", "forest", "sunset"];
+    private static readonly string[] Themes = ["graphite", "aurora", "ocean", "forest", "sunset"];
 
     public static void MapAccountProfileEndpoints(this WebApplication app)
     {
@@ -25,7 +25,7 @@ public static class AccountProfileEndpoints
             var user = await users.GetUserAsync(principal);
             if (user is null) return Results.Unauthorized();
             var theme = await db.UserPreferences.Where(item => item.UserId == user.Id)
-                .Select(item => item.ThemeId).SingleOrDefaultAsync() ?? "aurora";
+                .Select(item => item.ThemeId).SingleOrDefaultAsync() ?? "graphite";
             return Results.Ok(new { username = user.UserName, email = user.Email, themeId = theme });
         });
 

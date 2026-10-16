@@ -5,15 +5,22 @@
              RequestedThemeVariant="Dark">
 
     <Application.Resources>
-        <SolidColorBrush x:Key="AppBackground" Color="#12101D" />
-        <SolidColorBrush x:Key="AppSurface" Color="#201B30" />
-        <SolidColorBrush x:Key="AppPanel" Color="#2A233D" />
-        <SolidColorBrush x:Key="AppBorder" Color="#504366" />
-        <SolidColorBrush x:Key="AppAccent" Color="#B59AFF" />
-        <SolidColorBrush x:Key="AppAccentSoft" Color="#684F96" />
-        <SolidColorBrush x:Key="AppText" Color="#F7F2FF" />
-        <SolidColorBrush x:Key="AppMuted" Color="#C5B8D5" />
-        <Color x:Key="SystemAccentColor">#B59AFF</Color>
+        <SolidColorBrush x:Key="AppRail" Color="#1E1F22" />
+        <SolidColorBrush x:Key="AppHeader" Color="#232428" />
+        <SolidColorBrush x:Key="AppBackground" Color="#313338" />
+        <SolidColorBrush x:Key="AppSurface" Color="#2B2D31" />
+        <SolidColorBrush x:Key="AppPanel" Color="#383A40" />
+        <SolidColorBrush x:Key="AppBorder" Color="#3F4147" />
+        <SolidColorBrush x:Key="AppAccent" Color="#5865F2" />
+        <SolidColorBrush x:Key="AppAccentSoft" Color="#404249" />
+        <SolidColorBrush x:Key="AppText" Color="#F2F3F5" />
+        <SolidColorBrush x:Key="AppMuted" Color="#949BA4" />
+        <SolidColorBrush x:Key="AppWarning" Color="#F0B232" />
+        <SolidColorBrush x:Key="AppDanger" Color="#DA373C" />
+        <SolidColorBrush x:Key="AppDangerSoft" Color="#3A2326" />
+        <SolidColorBrush x:Key="AppOnline" Color="#23A559" />
+        <SolidColorBrush x:Key="AppLink" Color="#00A8FC" />
+        <Color x:Key="SystemAccentColor">#5865F2</Color>
     </Application.Resources>
 
     <Application.DataTemplates>
@@ -22,11 +29,112 @@
 
     <Application.Styles>
         <FluentTheme />
+        <Style Selector="TextBlock">
+            <Setter Property="FontFamily" Value="gg sans, Noto Sans, Segoe UI, Cantarell, sans-serif" />
+        </Style>
         <Style Selector="Button">
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="16,8" />
+            <Setter Property="Background" Value="{DynamicResource AppPanel}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style Selector="Button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4E5058" />
         </Style>
         <Style Selector="Button:disabled">
             <Setter Property="Cursor" Value="Arrow" />
+            <Setter Property="Opacity" Value="0.45" />
+        </Style>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="Medium" />
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4752C4" />
+        </Style>
+        <Style Selector="Button.ghost">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="{DynamicResource AppDanger}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.link">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource AppLink}" />
+            <Setter Property="Padding" Value="4,2" />
+        </Style>
+        <Style Selector="Button.server">
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="48" />
+            <Setter Property="CornerRadius" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource AppAccentSoft}" />
+        </Style>
+        <Style Selector="Button.server:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppAccent}" />
+        </Style>
+        <Style Selector="Button.server-add">
+            <Setter Property="Width" Value="48" />
+            <Setter Property="Height" Value="48" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource AppAccentSoft}" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border x:Name="Root" Background="{TemplateBinding Background}"
+                            Width="48" Height="48" CornerRadius="24">
+                        <Grid>
+                            <Border x:Name="PlusBarH" Width="18" Height="2" CornerRadius="1"
+                                    Background="{DynamicResource AppOnline}"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Border x:Name="PlusBarV" Width="2" Height="18" CornerRadius="1"
+                                    Background="{DynamicResource AppOnline}"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.server-add:pointerover /template/ Border#Root">
+            <Setter Property="Background" Value="{DynamicResource AppOnline}" />
+        </Style>
+        <Style Selector="Button.server-add:pointerover /template/ Border#PlusBarH">
+            <Setter Property="Background" Value="#FFFFFF" />
+        </Style>
+        <Style Selector="Button.server-add:pointerover /template/ Border#PlusBarV">
+            <Setter Property="Background" Value="#FFFFFF" />
+        </Style>
+        <Style Selector="ToolTip">
+            <Setter Property="Background" Value="#111214" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#1E1F22" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource AppText}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource AppMuted}" />
         </Style>
     </Application.Styles>
 </Application>

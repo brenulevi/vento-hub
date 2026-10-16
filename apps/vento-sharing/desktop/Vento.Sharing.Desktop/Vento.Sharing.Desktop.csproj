@@ -9,8 +9,7 @@
   <ItemGroup>
     <Folder Include="Models\" />
     <AvaloniaResource Include="Assets\**" />
-    <Content Include="Media/publisher.html" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="Media/publisher.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Media/portal_capture.py" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,5 +22,6 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Livekit.Rtc.Dotnet" Version="0.1.4" />
   </ItemGroup>
 </Project>

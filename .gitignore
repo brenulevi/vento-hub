@@ -2,6 +2,8 @@
 **/obj/
 **/node_modules/
 **/.venv/
+**/__pycache__/
+*.pyc
 dist/
 apps/vento-hub/web/Vento.Hub.Web/wwwroot/lib/
 .vs/

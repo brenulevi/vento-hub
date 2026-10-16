@@ -1,10 +1,10 @@
 # Vento Sharing
 
-Aplicação para até seis pessoas em uma sessão. A página web de sala é apenas para assistir. Qualquer participante pode iniciar a publicação no desktop, que abre uma janela de captura local no navegador padrão. Uma reserva na API permite apenas uma pessoa transmitindo por sala de cada vez; a vez fica disponível quando ela encerra ou após 45 segundos sem atualização.
+Aplicação para até seis pessoas em uma sessão. A página web de sala é apenas para assistir. Qualquer participante pode iniciar a publicação diretamente no desktop. No Linux, o seletor de tela do sistema usa ScreenCast/PipeWire; nenhum navegador é aberto para transmitir. Uma reserva na API permite apenas uma pessoa transmitindo por sala de cada vez; a vez fica disponível quando ela encerra ou após 45 segundos sem atualização.
 
 ## Componentes previstos
 
-- **Desktop:** C#/.NET 10 com Avalonia para interface. A primeira captura de vídeo usa uma janela local no navegador; a captura nativa e o áudio seletivo serão implementados depois.
+- **Desktop:** C#/.NET 10 com Avalonia para interface e cliente .NET do LiveKit para publicar e assistir. No Linux, a captura usa portal ScreenCast/PipeWire através de um pequeno capturador Python/GStreamer.
 - **Web:** visualizador somente leitura.
 - **Conta:** o Vento Hub cria a conta pelo navegador; a API de identidade autentica o desktop e o hub. Google e Discord virão depois.
 - **Mídia:** LiveKit como servidor WebRTC. O ambiente local está pronto; a instalação no Raspberry Pi ainda precisa de configuração de rede e medição da capacidade.
@@ -21,12 +21,12 @@ A página web recebe somente faixas de vídeo da tela. Microfone, saída complet
 
 ## Próximos marcos
 
-1. Integrar a captura diretamente à janela Avalonia e substituir a janela local do navegador.
+1. Implementar a captura desktop em outros sistemas, inclusive Windows.
 2. Adicionar áudio por aplicativo, com Discord excluído por padrão, e verificar sincronização.
 3. Medir upload e processamento no Raspberry e adicionar um limite global de banda.
 4. Adicionar Google e Discord à conta Vento.
 
-O desktop já inicia a transmissão de vídeo por uma janela local de captura. Essa integração usa a seleção de tela do navegador, inclusive em ambientes Wayland compatíveis, sem capturar a saída de áudio do sistema. A captura nativa integrada à janela Avalonia ainda é um passo posterior.
+O desktop inicia a transmissão de vídeo pelo controle da sala. O sistema exibe o seletor de tela; o processo auxiliar devolve quadros ao aplicativo, que os publica no LiveKit. A área central da sala reproduz o vídeo recebido pelo LiveKit, também para quem participa pelo desktop. O áudio do sistema não é capturado.
 
 ## Captura nativa futura
 

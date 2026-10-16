@@ -23,7 +23,7 @@ public partial class App : Application
 
             LoginViewModel ActivateLogin()
             {
-                AppTheme.Apply("aurora");
+                AppTheme.Apply("graphite");
                 var login = new LoginViewModel();
                 if (activeLogin is not null && !login.RememberCredentials)
                 {

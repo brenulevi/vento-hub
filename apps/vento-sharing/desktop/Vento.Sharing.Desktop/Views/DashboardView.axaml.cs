@@ -1,7 +1,9 @@
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
@@ -13,6 +15,14 @@ namespace Vento.Sharing.Desktop.Views;
 
 public partial class DashboardView : UserControl
 {
+    private MainViewModel? _observedViewModel;
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName == nameof(MainViewModel.SharedScreenImage))
+            SharedVideoImage.InvalidateVisual();
+    }
+
     private async void OnCopyWebRoomLinkClick(object? sender, RoutedEventArgs args)
     {
         if (DataContext is not MainViewModel viewModel || string.IsNullOrEmpty(viewModel.SelectedRoomWebUrl))
@@ -113,6 +123,16 @@ public partial class DashboardView : UserControl
     public DashboardView()
     {
         InitializeComponent();
+        Loaded += (_, _) => UpdateMainContentScroll();
+        LayoutUpdated += (_, _) => UpdateMainContentScroll();
+        DataContextChanged += (_, _) =>
+        {
+            if (_observedViewModel is not null)
+                _observedViewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _observedViewModel = DataContext as MainViewModel;
+            if (_observedViewModel is not null)
+                _observedViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        };
         RoomNameInput.KeyDown += (_, args) =>
         {
             if (args.Key != Key.Enter || DataContext is not MainViewModel viewModel)
@@ -166,5 +186,23 @@ public partial class DashboardView : UserControl
             if (args.Property.Name == "IsVisible" && RoomComposerModal.IsVisible)
                 Dispatcher.UIThread.Post(() => RoomNameInput.Focus());
         };
+    }
+
+    private void UpdateMainContentScroll()
+    {
+        if (MainContentScroll is null || MainContentPanel is null)
+            return;
+
+        var viewport = MainContentScroll.Viewport.Height;
+        if (viewport <= 0)
+        {
+            MainContentScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+            return;
+        }
+
+        MainContentScroll.VerticalScrollBarVisibility =
+            MainContentPanel.Bounds.Height > viewport + 1
+                ? ScrollBarVisibility.Auto
+                : ScrollBarVisibility.Disabled;
     }
 }

@@ -4,17 +4,23 @@ using Avalonia.Media;
 
 namespace Vento.Sharing.Desktop;
 
-public sealed record ThemePalette(string Id, string Name, string Background, string Surface,
-    string Panel, string Border, string Accent, string AccentSoft, string Text, string Muted);
+public sealed record ThemePalette(string Id, string Name, string Rail, string Header, string Background,
+    string Surface, string Panel, string Border, string Accent, string AccentSoft, string Text, string Muted);
 
 public static class AppTheme
 {
     public static readonly ThemePalette[] Palettes =
     [
-        new("aurora", "Aurora", "#12101D", "#201B30", "#2A233D", "#504366", "#B59AFF", "#684F96", "#F7F2FF", "#C5B8D5"),
-        new("ocean", "Oceano", "#0B1220", "#121D30", "#172A3B", "#345464", "#83DDE0", "#2D7281", "#F1F5F9", "#AFC0D2"),
-        new("forest", "Floresta", "#0E1915", "#16281F", "#1D3428", "#3C6852", "#83D9A7", "#327453", "#F1FAF3", "#B1D1BC"),
-        new("sunset", "Pôr do sol", "#1D1216", "#301D25", "#3D2630", "#714959", "#FFA882", "#945C64", "#FFF5F1", "#D9BEB9")
+        new("graphite", "Discord", "#1E1F22", "#232428", "#313338", "#2B2D31", "#383A40", "#3F4147",
+            "#5865F2", "#404249", "#F2F3F5", "#949BA4"),
+        new("aurora", "Aurora", "#16141F", "#1F1B2C", "#2A2638", "#221E30", "#322C45", "#443C5C",
+            "#9B84F6", "#4A3F68", "#F5F3FF", "#A8A3B8"),
+        new("ocean", "Oceano", "#0E141C", "#121A26", "#1A2433", "#141D2A", "#243447", "#2E4558",
+            "#3BA4D9", "#1F4F62", "#EFF6FB", "#94A9BC"),
+        new("forest", "Floresta", "#101814", "#152019", "#1C2822", "#152019", "#243529", "#355545",
+            "#3BA55D", "#264D3A", "#EDF8F1", "#9BBAA8"),
+        new("sunset", "Pôr do sol", "#1A1216", "#241820", "#30242A", "#241820", "#3A2C34", "#5C4450",
+            "#EB6F92", "#6E4048", "#FFF6F0", "#C4A8A0")
     ];
 
     public static ThemePalette Find(string? id) =>
@@ -25,6 +31,8 @@ public static class AppTheme
         var resources = Application.Current?.Resources;
         if (resources is null) return;
         var palette = Find(id);
+        resources["AppRail"] = Brush.Parse(palette.Rail);
+        resources["AppHeader"] = Brush.Parse(palette.Header);
         resources["AppBackground"] = Brush.Parse(palette.Background);
         resources["AppSurface"] = Brush.Parse(palette.Surface);
         resources["AppPanel"] = Brush.Parse(palette.Panel);
@@ -33,6 +41,11 @@ public static class AppTheme
         resources["AppAccentSoft"] = Brush.Parse(palette.AccentSoft);
         resources["AppText"] = Brush.Parse(palette.Text);
         resources["AppMuted"] = Brush.Parse(palette.Muted);
+        resources["AppWarning"] = Brush.Parse("#F0B232");
+        resources["AppDanger"] = Brush.Parse("#DA373C");
+        resources["AppDangerSoft"] = Brush.Parse("#3A2326");
+        resources["AppOnline"] = Brush.Parse("#23A559");
+        resources["AppLink"] = Brush.Parse(palette.Accent);
         resources["SystemAccentColor"] = Color.Parse(palette.Accent);
     }
 }
