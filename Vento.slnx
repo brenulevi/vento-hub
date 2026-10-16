@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/apps/" />
+  <Folder Name="/apps/vento-sharing/" />
+  <Folder Name="/apps/vento-sharing/desktop/">
+    <Project Path="apps/vento-sharing/desktop/Vento.Sharing.Desktop/Vento.Sharing.Desktop.csproj" />
+  </Folder>
+  <Folder Name="/apps/vento-hub/web/">
+    <Project Path="apps/vento-hub/web/Vento.Hub.Web/Vento.Hub.Web.csproj" />
+  </Folder>
+  <Folder Name="/services/vento-identity/">
+    <Project Path="services/vento-identity/Vento.Identity.Api/Vento.Identity.Api.csproj" />
+  </Folder>
+</Solution>

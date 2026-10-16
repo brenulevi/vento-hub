@@ -1,0 +1,5 @@
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.10
+    network_mode: host
+    command: --dev --node-ip 127.0.0.1

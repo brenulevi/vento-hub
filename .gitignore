@@ -1,0 +1,18 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.venv/
+dist/
+apps/vento-hub/web/Vento.Hub.Web/wwwroot/lib/
+.vs/
+.idea/
+*.user
+*.suo
+.DS_Store
+services/vento-identity/Vento.Identity.Api/data/media/
+
+# Credentials and local runtime state
+**/appsettings.Development.json
+**/.env
+**/.env.*
+!**/.env.example

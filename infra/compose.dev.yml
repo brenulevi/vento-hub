@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17.11-alpine3.24
+    environment:
+      POSTGRES_DB: vento_identity
+      POSTGRES_USER: vento_dev
+      POSTGRES_PASSWORD: vento_local_dev
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - vento_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vento_dev -d vento_identity"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  vento_postgres_data:
