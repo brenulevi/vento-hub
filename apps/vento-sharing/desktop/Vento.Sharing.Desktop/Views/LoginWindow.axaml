@@ -69,28 +69,41 @@
                                    FontSize="14" Foreground="{DynamicResource AppMuted}" TextWrapping="Wrap" />
 
                         <Button Content="Abrir login no navegador" Command="{Binding BrowserLoginCommand}"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,8,0,0" />
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,8,0,0"
+                                IsVisible="{Binding !IsAwaitingBrowserLogin}" />
                         <Button Classes="link" Content="Criar conta" Command="{Binding OpenRegistrationCommand}"
-                                HorizontalAlignment="Left" />
+                                HorizontalAlignment="Left" IsVisible="{Binding !IsAwaitingBrowserLogin}" />
+                        <Button Classes="ghost" Content="Cancelar login no navegador"
+                                Command="{Binding CancelBrowserLoginCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                IsVisible="{Binding IsAwaitingBrowserLogin}" />
 
                         <Border Height="1" Background="{DynamicResource AppBorder}" Margin="0,16" />
 
-                        <Button Classes="ghost" Content="{Binding ServerSettingsLabel}"
-                                Command="{Binding ToggleServerSettingsCommand}"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                Padding="0" Foreground="{DynamicResource AppLink}" />
-                        <Border IsVisible="{Binding ShowServerSettings}" Padding="0,8,0,0">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="API Vento" Foreground="{DynamicResource AppMuted}" FontSize="12"
-                                           FontWeight="Bold" />
-                                <TextBox Text="{Binding ServerAddress, Mode=TwoWay}"
-                                         PlaceholderText="http://127.0.0.1:5080" />
-                                <TextBlock Text="Hub Vento" Foreground="{DynamicResource AppMuted}" FontSize="12"
-                                           FontWeight="Bold" Margin="0,8,0,0" />
-                                <TextBox Text="{Binding HubAddress, Mode=TwoWay}"
-                                         PlaceholderText="http://127.0.0.1:5081" />
-                            </StackPanel>
-                        </Border>
+                        <StackPanel Spacing="8" IsVisible="{Binding AllowAdvancedServerSettings}">
+                            <Button Classes="ghost" Content="{Binding ServerSettingsLabel}"
+                                    Command="{Binding ToggleServerSettingsCommand}"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Padding="0" Foreground="{DynamicResource AppLink}" />
+                            <Border IsVisible="{Binding ShowServerSettings}" Padding="0,8,0,0">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Somente para desenvolvimento local."
+                                               Foreground="{DynamicResource AppMuted}" FontSize="12"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Text="API Vento" Foreground="{DynamicResource AppMuted}" FontSize="12"
+                                               FontWeight="Bold" />
+                                    <TextBox Text="{Binding ServerAddress}" IsReadOnly="True"
+                                             PlaceholderText="http://127.0.0.1:5080" />
+                                    <TextBlock Text="Hub Vento" Foreground="{DynamicResource AppMuted}" FontSize="12"
+                                               FontWeight="Bold" Margin="0,8,0,0" />
+                                    <TextBox Text="{Binding HubAddress}" IsReadOnly="True"
+                                             PlaceholderText="http://127.0.0.1:5081" />
+                                    <TextBlock Text="Altere appsettings.Development.json ou VENTO_API_BASE_URL / VENTO_HUB_BASE_URL."
+                                               Foreground="{DynamicResource AppMuted}" FontSize="11"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
                     </StackPanel>
             </Grid>
         </Border>

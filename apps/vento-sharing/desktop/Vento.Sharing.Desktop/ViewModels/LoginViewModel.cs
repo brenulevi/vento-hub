@@ -9,9 +9,11 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Vento.Sharing.Desktop.Configuration;
 using Vento.Sharing.Desktop.Security;
 
 namespace Vento.Sharing.Desktop.ViewModels;
@@ -19,8 +21,9 @@ namespace Vento.Sharing.Desktop.ViewModels;
 public sealed class LoginViewModel : ViewModelBase
 {
     private static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(15) };
-    private string _serverAddress = "http://127.0.0.1:5080";
-    private string _hubAddress = "http://127.0.0.1:5081";
+    private readonly string _serverAddress;
+    private readonly string _hubAddress;
+    private readonly bool _allowAdvancedServerSettings;
     private string _identifier = string.Empty;
     private string _password = string.Empty;
     private string _message = string.Empty;
@@ -28,20 +31,15 @@ public sealed class LoginViewModel : ViewModelBase
     private bool _showServerSettings;
     private bool _rememberCredentials;
     private bool _hasSavedCredentials;
+    private bool _isAwaitingBrowserLogin;
+    private CancellationTokenSource? _browserLoginCts;
+    private bool _browserLoginCancelledByUser;
 
     public event Action<string, string, string, string>? Authenticated;
 
-    public string ServerAddress
-    {
-        get => _serverAddress;
-        set => SetProperty(ref _serverAddress, value);
-    }
-
-    public string HubAddress
-    {
-        get => _hubAddress;
-        set => SetProperty(ref _hubAddress, value);
-    }
+    public string ServerAddress => _serverAddress;
+    public string HubAddress => _hubAddress;
+    public bool AllowAdvancedServerSettings => _allowAdvancedServerSettings;
 
     public string Identifier
     {
@@ -76,7 +74,21 @@ public sealed class LoginViewModel : ViewModelBase
     public bool IsBusy
     {
         get => _isBusy;
-        private set => SetProperty(ref _isBusy, value);
+        private set
+        {
+            if (SetProperty(ref _isBusy, value))
+                NotifyLoginCommandsCanExecuteChanged();
+        }
+    }
+
+    public bool IsAwaitingBrowserLogin
+    {
+        get => _isAwaitingBrowserLogin;
+        private set
+        {
+            if (SetProperty(ref _isAwaitingBrowserLogin, value))
+                CancelBrowserLoginCommand.NotifyCanExecuteChanged();
+        }
     }
 
     public bool ShowServerSettings
@@ -98,14 +110,21 @@ public sealed class LoginViewModel : ViewModelBase
     public IAsyncRelayCommand OpenRegistrationCommand { get; }
     public IRelayCommand ToggleServerSettingsCommand { get; }
     public IRelayCommand ForgetCredentialsCommand { get; }
+    public IRelayCommand CancelBrowserLoginCommand { get; }
 
     public LoginViewModel()
     {
+        var endpoints = VentoClientConfiguration.Current;
+        _serverAddress = endpoints.ApiBaseUrl;
+        _hubAddress = endpoints.HubBaseUrl;
+        _allowAdvancedServerSettings = endpoints.ShowAdvancedServerSettings;
+
         LoginCommand = new AsyncRelayCommand(AuthenticateAsync, () => !IsBusy);
         BrowserLoginCommand = new AsyncRelayCommand(() => StartBrowserLoginAsync(false), () => !IsBusy);
         OpenRegistrationCommand = new AsyncRelayCommand(() => StartBrowserLoginAsync(true), () => !IsBusy);
         ToggleServerSettingsCommand = new RelayCommand(() => ShowServerSettings = !ShowServerSettings);
         ForgetCredentialsCommand = new RelayCommand(ForgetCredentials);
+        CancelBrowserLoginCommand = new RelayCommand(CancelBrowserLogin, () => IsAwaitingBrowserLogin);
 
         try
         {
@@ -114,8 +133,6 @@ public sealed class LoginViewModel : ViewModelBase
             {
                 Identifier = saved.Identifier;
                 Password = saved.Password;
-                ServerAddress = saved.ServerAddress;
-                HubAddress = saved.HubAddress;
                 RememberCredentials = true;
                 HasSavedCredentials = true;
             }
@@ -144,23 +161,38 @@ public sealed class LoginViewModel : ViewModelBase
         }
     }
 
-    public async Task StartBrowserLoginAsync(bool register = false)
+    private void CancelBrowserLogin()
     {
-        if (!Uri.TryCreate(HubAddress.TrimEnd('/'), UriKind.Absolute, out var hub)
-            || (hub.Scheme != Uri.UriSchemeHttp && hub.Scheme != Uri.UriSchemeHttps)
-            || !Uri.TryCreate(ServerAddress.TrimEnd('/'), UriKind.Absolute, out var server)
-            || (server.Scheme != Uri.UriSchemeHttp && server.Scheme != Uri.UriSchemeHttps))
-        {
-            Message = "Configure endereços válidos para o hub e a API Vento.";
-            ShowServerSettings = true;
+        if (!IsAwaitingBrowserLogin)
             return;
-        }
+        _browserLoginCancelledByUser = true;
+        _browserLoginCts?.Cancel();
+    }
 
-        IsBusy = true;
+    private void NotifyLoginCommandsCanExecuteChanged()
+    {
         LoginCommand.NotifyCanExecuteChanged();
         BrowserLoginCommand.NotifyCanExecuteChanged();
         OpenRegistrationCommand.NotifyCanExecuteChanged();
-        Message = "Aguardando login no navegador...";
+    }
+
+    public async Task StartBrowserLoginAsync(bool register = false)
+    {
+        if (!TryCreateServiceUris(out var server, out var hub))
+            return;
+
+        if (IsAwaitingBrowserLogin)
+            CancelBrowserLogin();
+
+        _browserLoginCancelledByUser = false;
+        _browserLoginCts?.Dispose();
+        _browserLoginCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        var cancellationToken = _browserLoginCts.Token;
+
+        IsBusy = true;
+        IsAwaitingBrowserLogin = true;
+        Message = "Aguardando login no navegador… Use Cancelar se fechou a aba do navegador.";
+        HttpListener? listener = null;
         try
         {
             var verifier = Base64Url(RandomNumberGenerator.GetBytes(32));
@@ -171,9 +203,13 @@ public sealed class LoginViewModel : ViewModelBase
             var port = ((IPEndPoint)portPicker.LocalEndpoint).Port;
             portPicker.Stop();
 
-            using var listener = new HttpListener();
+            listener = new HttpListener();
             listener.Prefixes.Add($"http://127.0.0.1:{port}/");
             listener.Start();
+            using var stopRegistration = cancellationToken.Register(() =>
+            {
+                try { listener.Stop(); } catch (ObjectDisposedException) { } catch (HttpListenerException) { }
+            });
             var callback = $"http://127.0.0.1:{port}/callback";
             var connect = new Uri(new Uri(hub.ToString().TrimEnd('/') + "/"),
                 $"desktop/conectar?callback={Uri.EscapeDataString(callback)}&challenge={challenge}&state={state}");
@@ -186,7 +222,7 @@ public sealed class LoginViewModel : ViewModelBase
                 return;
             }
 
-            var context = await listener.GetContextAsync().WaitAsync(TimeSpan.FromMinutes(2));
+            var context = await listener.GetContextAsync().WaitAsync(cancellationToken);
             var valid = context.Request.Url?.AbsolutePath == "/callback"
                 && context.Request.QueryString["state"] == state;
             var code = valid ? context.Request.QueryString["code"] : null;
@@ -221,16 +257,27 @@ public sealed class LoginViewModel : ViewModelBase
             }
             await FinishLoginAsync(baseUri, tokens.AccessToken);
         }
-        catch (Exception error) when (error is Win32Exception or InvalidOperationException or PlatformNotSupportedException or HttpListenerException or SocketException or IOException or HttpRequestException or TimeoutException or TaskCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            Message = error is TimeoutException ? "O login no navegador expirou. Tente novamente." : "Não foi possível concluir o login no navegador.";
+            Message = _browserLoginCancelledByUser
+                ? "Login no navegador cancelado."
+                : "O login no navegador expirou. Tente novamente.";
+        }
+        catch (Exception error) when (error is Win32Exception or InvalidOperationException or PlatformNotSupportedException or HttpListenerException or SocketException or IOException or HttpRequestException)
+        {
+            Message = "Não foi possível concluir o login no navegador.";
         }
         finally
         {
+            if (listener is not null)
+            {
+                try { listener.Stop(); } catch (ObjectDisposedException) { } catch (HttpListenerException) { }
+                listener.Close();
+            }
+            _browserLoginCts?.Dispose();
+            _browserLoginCts = null;
+            IsAwaitingBrowserLogin = false;
             IsBusy = false;
-            LoginCommand.NotifyCanExecuteChanged();
-            BrowserLoginCommand.NotifyCanExecuteChanged();
-            OpenRegistrationCommand.NotifyCanExecuteChanged();
         }
     }
 
@@ -238,12 +285,8 @@ public sealed class LoginViewModel : ViewModelBase
 
     private async Task AuthenticateAsync()
     {
-        if (!Uri.TryCreate(ServerAddress.TrimEnd('/'), UriKind.Absolute, out var server)
-            || (server.Scheme != Uri.UriSchemeHttp && server.Scheme != Uri.UriSchemeHttps))
-        {
-            Message = "Informe um endereço HTTP ou HTTPS válido para o servidor.";
+        if (!TryCreateServiceUris(out var server, out _))
             return;
-        }
 
         var identifier = Identifier.Trim();
         if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(Password))
@@ -311,8 +354,7 @@ public sealed class LoginViewModel : ViewModelBase
             {
                 if (RememberCredentials)
                 {
-                    SavedCredentialsStore.Save(new SavedCredentials(Identifier.Trim(), Password,
-                        baseUri.ToString(), HubAddress));
+                    SavedCredentialsStore.Save(new SavedCredentials(Identifier.Trim(), Password));
                     HasSavedCredentials = true;
                 }
                 else
@@ -328,6 +370,28 @@ public sealed class LoginViewModel : ViewModelBase
         }
         Password = string.Empty;
         Authenticated?.Invoke(account.Username, account.Email, accessToken, baseUri.ToString());
+    }
+
+    private bool TryCreateServiceUris(out Uri server, out Uri hub)
+    {
+        server = null!;
+        hub = null!;
+        if (!Uri.TryCreate(ServerAddress, UriKind.Absolute, out var api)
+            || (api.Scheme != Uri.UriSchemeHttp && api.Scheme != Uri.UriSchemeHttps)
+            || !Uri.TryCreate(HubAddress, UriKind.Absolute, out var hubUri)
+            || (hubUri.Scheme != Uri.UriSchemeHttp && hubUri.Scheme != Uri.UriSchemeHttps))
+        {
+            Message = AllowAdvancedServerSettings
+                ? "Configure endereços válidos para o hub e a API Vento."
+                : "Não foi possível resolver os servidores Vento. Atualize o aplicativo ou tente mais tarde.";
+            if (AllowAdvancedServerSettings)
+                ShowServerSettings = true;
+            return false;
+        }
+
+        server = api;
+        hub = hubUri;
+        return true;
     }
 
     private sealed record LoginResponse(string AccessToken);

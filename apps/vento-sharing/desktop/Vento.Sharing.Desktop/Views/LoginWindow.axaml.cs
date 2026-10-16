@@ -45,6 +45,8 @@ public partial class LoginWindow : Window
     {
         _ = _dashboard?.StopSharingAsync();
         _dashboard = null;
+        if (WindowState == WindowState.FullScreen)
+            WindowState = WindowState.Normal;
         Content = _loginContent;
         DataContext = login;
         Title = "Vento Sharing · Entrar";

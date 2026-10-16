@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Vento.Sharing.Desktop.Views.FullscreenIcon"
+             Width="16" Height="16">
+    <Viewbox Stretch="Uniform">
+        <Canvas Width="24" Height="24">
+            <Path x:Name="IconPath" Stroke="White" StrokeThickness="2"
+                  StrokeLineCap="Square" Fill="Transparent" />
+        </Canvas>
+    </Viewbox>
+</UserControl>

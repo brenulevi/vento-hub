@@ -16,6 +16,7 @@ using Avalonia.Threading;
 using Avalonia.Media.Imaging;
 using Avalonia.Media;
 using Vento.Sharing.Desktop;
+using Vento.Sharing.Desktop.Configuration;
 using Vento.Sharing.Desktop.Security;
 using Vento.Sharing.Desktop.Media;
 
@@ -27,6 +28,7 @@ public sealed class MainViewModel : ViewModelBase
     private readonly Uri _server;
     private readonly Uri _hub;
     private NativePublisherSession? _publisher;
+    private IntPtr _hostWindowHandle;
     private DesktopRoomViewer? _viewer;
     private long _viewerGeneration;
     private WriteableBitmap? _sharedScreenImage;
@@ -38,6 +40,7 @@ public sealed class MainViewModel : ViewModelBase
     private bool _shareBusy;
     private bool _isSharing;
     private string _shareMessage = string.Empty;
+    private string _shareStreamProfile = string.Empty;
     private bool _isProfileOpen;
     private bool _isProfilePage;
     private bool _isRoomComposerOpen;
@@ -60,9 +63,10 @@ public sealed class MainViewModel : ViewModelBase
     private string _selectedThemeId = "graphite";
     private bool _isSavingTheme;
     private bool _isWideLayout = true;
+    private bool _isVideoFullscreen;
 
     public MainViewModel() : this("Conta Vento", string.Empty, string.Empty,
-        "http://127.0.0.1:5080", "http://127.0.0.1:5081") { }
+        VentoClientConfiguration.Current.ApiBaseUrl, VentoClientConfiguration.Current.HubBaseUrl) { }
 
     public MainViewModel(string username, string email, string accessToken, string serverAddress, string hubAddress)
     {
@@ -106,6 +110,8 @@ public sealed class MainViewModel : ViewModelBase
         });
         CreateRoomCommand = new AsyncRelayCommand(CreateRoomAsync, () => !IsBusy);
         JoinRoomCommand = new AsyncRelayCommand(JoinRoomAsync, () => !IsBusy);
+        EnterVideoFullscreenCommand = new RelayCommand(EnterVideoFullscreen, () => HasSharedScreen && !IsVideoFullscreen);
+        ExitVideoFullscreenCommand = new RelayCommand(ExitVideoFullscreen, () => IsVideoFullscreen);
         foreach (var palette in AppTheme.Palettes)
             ThemeChoices.Add(new ThemeChoiceViewModel(palette, () => _ = SelectThemeAsync(palette.Id)));
         AppTheme.Apply(_selectedThemeId);
@@ -142,7 +148,21 @@ public sealed class MainViewModel : ViewModelBase
         get => _shareMessage;
         private set => SetProperty(ref _shareMessage, value);
     }
+
+    public string ShareStreamProfile
+    {
+        get => _shareStreamProfile;
+        private set
+        {
+            if (SetProperty(ref _shareStreamProfile, value))
+                OnPropertyChanged(nameof(HasShareStreamProfile));
+        }
+    }
+
+    public bool HasShareStreamProfile => !string.IsNullOrEmpty(ShareStreamProfile);
     public void ReportRoomMessage(string message) => Message = message;
+
+    public void SetHostWindowHandle(IntPtr handle) => _hostWindowHandle = handle;
     public event Action? LogoutRequested;
     public string AvatarLetter => Username.Length > 0 ? Username[..1].ToUpperInvariant() : "V";
     public Bitmap? AvatarImage
@@ -195,11 +215,27 @@ public sealed class MainViewModel : ViewModelBase
                 OnPropertyChanged(nameof(HasSharedScreen));
                 OnPropertyChanged(nameof(HasNoSharedScreen));
                 NotifySharePresentationState();
+                if (!HasSharedScreen)
+                    IsVideoFullscreen = false;
+                EnterVideoFullscreenCommand.NotifyCanExecuteChanged();
             }
         }
     }
     public bool HasSharedScreen => SharedScreenImage is not null;
     public bool HasNoSharedScreen => SharedScreenImage is null;
+
+    public bool IsVideoFullscreen
+    {
+        get => _isVideoFullscreen;
+        private set
+        {
+            if (SetProperty(ref _isVideoFullscreen, value))
+            {
+                EnterVideoFullscreenCommand.NotifyCanExecuteChanged();
+                ExitVideoFullscreenCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
     public bool ShowLocalSharingStatus => IsSharing && !HasSharedScreen;
     public bool ShowWaitingForStream => !IsSharing && HasActiveSharer && !HasSharedScreen;
     public bool ShowIdleStreamPlaceholder => !HasSharedScreen && !IsSharing && !HasActiveSharer;
@@ -351,6 +387,8 @@ public sealed class MainViewModel : ViewModelBase
     public IAsyncRelayCommand CreateRoomCommand { get; }
     public IAsyncRelayCommand JoinRoomCommand { get; }
     public IAsyncRelayCommand AddFriendCommand { get; }
+    public IRelayCommand EnterVideoFullscreenCommand { get; }
+    public IRelayCommand ExitVideoFullscreenCommand { get; }
 
     public async Task LoadRoomsAsync()
     {
@@ -514,12 +552,20 @@ public sealed class MainViewModel : ViewModelBase
             session = new NativePublisherSession(connection.Url, connection.Token);
             var currentSession = session;
             session.StateChanged += state => Dispatcher.UIThread.Post(() => _ = HandlePublisherStateAsync(currentSession, state));
+            session.OutputProfileStatus += status => Dispatcher.UIThread.Post(() =>
+            {
+                if (_publisher != currentSession) return;
+                ShareStreamProfile = status;
+            });
             _publisher = session;
+            ShareStreamProfile = string.Empty;
             NotifyPublisherChanged();
             _sharingRoomId = room.Id;
             _sharingSessionId = acquiredSessionId;
-            session.Start();
-            ShareMessage = "Escolha uma tela ou janela no seletor do sistema.";
+            ShareMessage = OperatingSystem.IsWindows()
+                ? "Escolha uma tela ou janela no seletor do Windows."
+                : "Escolha uma tela ou janela no seletor do sistema.";
+            await session.StartAsync(_hostWindowHandle);
         }
         catch (Exception error) when (error is HttpRequestException or TaskCanceledException
             or IOException or InvalidOperationException or PlatformNotSupportedException
@@ -575,6 +621,7 @@ public sealed class MainViewModel : ViewModelBase
         _publisher = null;
         NotifyPublisherChanged();
         IsSharing = false;
+        ShareStreamProfile = string.Empty;
         ClearSharedScreen();
         ViewerMessage = string.Empty;
         try
@@ -975,6 +1022,17 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(ShowWaitingForStream));
         OnPropertyChanged(nameof(ShowIdleStreamPlaceholder));
     }
+
+    private void EnterVideoFullscreen()
+    {
+        if (!HasSharedScreen)
+            return;
+        IsProfileOpen = false;
+        IsRoomComposerOpen = false;
+        IsVideoFullscreen = true;
+    }
+
+    public void ExitVideoFullscreen() => IsVideoFullscreen = false;
 
     private async Task LoadFriendsAsync()
     {

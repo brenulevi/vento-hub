@@ -51,7 +51,8 @@ public sealed class DesktopRoomViewer : IAsyncDisposable
                 ClearActiveTrack();
         };
         await room.ConnectAsync(_serverUrl, _token,
-            new LiveKit.Rtc.RoomOptions { AutoSubscribe = true }, _lifetime.Token);
+            new LiveKit.Rtc.RoomOptions { AutoSubscribe = true, AdaptiveStream = true, Dynacast = true },
+            _lifetime.Token);
     }
 
     private void ClearActiveTrack()

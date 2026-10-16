@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace Vento.Sharing.Desktop.Security;
 
-public sealed record SavedCredentials(string Identifier, string Password, string ServerAddress, string HubAddress);
+public sealed record SavedCredentials(string Identifier, string Password);
 
 public static class SavedCredentialsStore
 {
@@ -33,7 +33,10 @@ public static class SavedCredentialsStore
         using var aes = new AesGcm(key, TagLength);
         aes.Decrypt(data.AsSpan(0, NonceLength), data.AsSpan(NonceLength + TagLength),
             data.AsSpan(NonceLength, TagLength), plaintext, AssociatedData);
-        return JsonSerializer.Deserialize<SavedCredentials>(plaintext);
+        var legacy = JsonSerializer.Deserialize<SavedCredentialsLegacy>(plaintext);
+        if (legacy is null)
+            return null;
+        return new SavedCredentials(legacy.Identifier, legacy.Password);
     }
 
     public static void Save(SavedCredentials credentials)
@@ -76,6 +79,12 @@ public static class SavedCredentialsStore
             File.Delete(DataPath);
         if (File.Exists(KeyPath))
             File.Delete(KeyPath);
+    }
+
+    private sealed class SavedCredentialsLegacy
+    {
+        public string Identifier { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
 
     private static void WritePrivateFile(string path, byte[] data, bool overwrite)

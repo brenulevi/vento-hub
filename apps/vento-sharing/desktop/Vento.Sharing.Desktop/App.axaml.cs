@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using Vento.Sharing.Desktop.Configuration;
 using Vento.Sharing.Desktop.ViewModels;
 using Vento.Sharing.Desktop.Views;
 
@@ -25,15 +26,11 @@ public partial class App : Application
             {
                 AppTheme.Apply("graphite");
                 var login = new LoginViewModel();
-                if (activeLogin is not null && !login.RememberCredentials)
-                {
-                    login.ServerAddress = activeLogin.ServerAddress;
-                    login.HubAddress = activeLogin.HubAddress;
-                }
                 activeLogin = login;
                 login.Authenticated += (username, email, token, serverAddress) =>
                 {
-                    var dashboard = new MainViewModel(username, email, token, serverAddress, login.HubAddress);
+                    var endpoints = VentoClientConfiguration.Current;
+                    var dashboard = new MainViewModel(username, email, token, endpoints.ApiBaseUrl, endpoints.HubBaseUrl);
                     dashboard.LogoutRequested += () => ActivateLogin();
                     loginWindow.ShowDashboard(dashboard);
                     _ = dashboard.LoadRoomsAsync();

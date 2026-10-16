@@ -20,9 +20,9 @@ from gi.repository import Gio, GLib, Gst
 PORTAL = "org.freedesktop.portal.Desktop"
 OBJECT = "/org/freedesktop/portal/desktop"
 INTERFACE = "org.freedesktop.portal.ScreenCast"
-WIDTH = 1280
-HEIGHT = 720
-FPS = 10
+WIDTH = 1920
+HEIGHT = 1080
+FPS = 30
 
 
 def options(**values):

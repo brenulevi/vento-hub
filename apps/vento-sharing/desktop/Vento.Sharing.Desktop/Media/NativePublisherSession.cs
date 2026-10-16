@@ -4,13 +4,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using LiveKit.Proto;
 using LiveKit.Rtc;
 
 namespace Vento.Sharing.Desktop.Media;
 
-/// <summary>Captures via the Linux screen cast portal and publishes from this process.</summary>
-public sealed class NativePublisherSession : IAsyncDisposable
+/// <summary>Captures the screen natively and publishes from this process.</summary>
+public sealed partial class NativePublisherSession : IAsyncDisposable
 {
     private readonly string _serverUrl;
     private readonly string _token;
@@ -22,6 +21,7 @@ public sealed class NativePublisherSession : IAsyncDisposable
     private int _closed;
 
     public event Action<string>? StateChanged;
+    public event Action<string>? OutputProfileStatus;
     public string ErrorMessage { get; private set; } = string.Empty;
 
     public NativePublisherSession(string serverUrl, string token)
@@ -30,10 +30,29 @@ public sealed class NativePublisherSession : IAsyncDisposable
         _token = token;
     }
 
-    public void Start()
+    public async Task StartAsync(IntPtr hostWindowHandle = default)
     {
-        if (!OperatingSystem.IsLinux())
-            throw new PlatformNotSupportedException("A captura nativa está disponível no Linux nesta etapa.");
+        if (OperatingSystem.IsLinux())
+        {
+            StartLinux();
+            return;
+        }
+
+        if (OperatingSystem.IsWindows())
+        {
+#if WINDOWS_PUBLISHER
+            await StartWindowsAsync(hostWindowHandle);
+            return;
+#else
+            throw new PlatformNotSupportedException("Recompile o aplicativo no Windows para habilitar a captura de tela.");
+#endif
+        }
+
+        throw new PlatformNotSupportedException("A captura de tela não está disponível neste sistema.");
+    }
+
+    private void StartLinux()
+    {
         var script = Path.Combine(AppContext.BaseDirectory, "Media", "portal_capture.py");
         if (!File.Exists(script)) throw new FileNotFoundException("Capturador de tela não encontrado.", script);
         var start = new ProcessStartInfo("python3")
@@ -45,7 +64,7 @@ public sealed class NativePublisherSession : IAsyncDisposable
         };
         start.ArgumentList.Add(script);
         _capture = Process.Start(start) ?? throw new InvalidOperationException("Não foi possível iniciar a captura.");
-        _worker = RunAsync(_capture, _lifetime.Token);
+        _worker = RunLinuxAsync(_capture, _lifetime.Token);
         _heartbeat = ReportPresenceAsync(_lifetime.Token);
     }
 
@@ -61,12 +80,9 @@ public sealed class NativePublisherSession : IAsyncDisposable
         catch (OperationCanceledException) { }
     }
 
-    private async Task RunAsync(Process capture, CancellationToken cancellationToken)
+    private async Task RunLinuxAsync(Process capture, CancellationToken cancellationToken)
     {
-        Room? room = null;
-        VideoSource? source = null;
-        LocalVideoTrack? track = null;
-        string? publicationSid = null;
+        PublisherScreenShareSession? publisher = null;
         var diagnostics = capture.StandardError.ReadToEndAsync(cancellationToken);
         try
         {
@@ -78,25 +94,16 @@ public sealed class NativePublisherSession : IAsyncDisposable
             if (width is < 320 or > 3840 || height is < 240 or > 2160)
                 throw new InvalidDataException("Dimensões de captura inválidas.");
 
-            room = new Room();
-            await room.ConnectAsync(_serverUrl, _token, cancellationToken: cancellationToken);
-            source = new VideoSource(width, height);
-            track = LocalVideoTrack.Create("vento-screen", source);
-            var publication = await room.LocalParticipant!.PublishTrackAsync(track, new LiveKit.Rtc.TrackPublishOptions
-            {
-                Source = TrackSource.SourceScreenshare,
-                Simulcast = false,
-                VideoEncoding = new VideoEncodingOptions { MaxBitrate = 1_000_000, MaxFramerate = 10 }
-            }, cancellationToken);
-            publicationSid = publication.Sid;
+            publisher = new PublisherScreenShareSession();
+            publisher.OutputProfileStatus += status => OutputProfileStatus?.Invoke(status);
+            await publisher.ConnectAsync(_serverUrl, _token, cancellationToken);
 
             var pixels = new byte[checked(width * height * 4)];
             while (!cancellationToken.IsCancellationRequested)
             {
                 await input.ReadExactlyAsync(pixels, cancellationToken);
-                var frame = new VideoFrame(width, height, VideoBufferType.Rgba, pixels);
-                source.CaptureFrame(frame);
-                if (!_isPublishing)
+                var published = await publisher.TryPublishRgbaAsync(pixels, width, height, cancellationToken);
+                if (published && !_isPublishing)
                 {
                     _isPublishing = true;
                     StateChanged?.Invoke("publishing");
@@ -112,15 +119,8 @@ public sealed class NativePublisherSession : IAsyncDisposable
         }
         finally
         {
-            if (room is not null)
-            {
-                if (publicationSid is not null)
-                    try { await room.LocalParticipant!.UnpublishTrackAsync(publicationSid); } catch { }
-                try { await room.DisconnectAsync(); } catch { }
-                room.Dispose();
-            }
-            track?.Dispose();
-            source?.Dispose();
+            if (publisher is not null)
+                await publisher.DisposeAsync();
             StopCaptureProcess(capture);
             await capture.WaitForExitAsync();
         }
