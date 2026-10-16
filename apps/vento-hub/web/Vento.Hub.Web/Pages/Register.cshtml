@@ -1,0 +1,42 @@
+@page "/criar-conta"
+@model RegisterModel
+@{
+    ViewData["Title"] = "Criar conta";
+}
+
+<section class="auth-section container">
+    <div class="auth-intro">
+        <span class="kicker">BEM-VINDO AO VENTO</span>
+        <h1>Seu ponto de partida.</h1>
+        <p>Uma conta Vento conecta você às aplicações do hub. Crie a sua para começar a usar o Vento Sharing.</p>
+        <div class="auth-note"><span aria-hidden="true">↗</span><p>Veio do aplicativo desktop? Depois do cadastro, volte a ele e entre com seu usuário ou e-mail e senha.</p></div>
+    </div>
+    <div class="auth-card">
+        <div class="card-topline"></div>
+        <span class="form-kicker">NOVA CONTA</span>
+        <h2>Criar conta Vento</h2>
+        <p class="form-subtitle">Preencha os dados abaixo para abrir seu espaço.</p>
+        <form method="post" asp-page="/Register" class="auth-form">
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div asp-validation-summary="ModelOnly" class="form-error" role="alert"></div>
+            <label asp-for="Input.Username">Nome de usuário</label>
+            <input asp-for="Input.Username" type="text" autocomplete="username" placeholder="seu_usuario" minlength="3" maxlength="32" required />
+            <span asp-validation-for="Input.Username" class="field-error"></span>
+
+            <label asp-for="Input.Email">E-mail</label>
+            <input asp-for="Input.Email" type="email" autocomplete="email" placeholder="voce@exemplo.com" required />
+            <span asp-validation-for="Input.Email" class="field-error"></span>
+
+            <label asp-for="Input.Password">Senha</label>
+            <input asp-for="Input.Password" type="password" autocomplete="new-password" placeholder="Pelo menos 10 caracteres e um número" minlength="10" required />
+            <span asp-validation-for="Input.Password" class="field-error"></span>
+
+            <label asp-for="Input.ConfirmPassword">Confirmar senha</label>
+            <input asp-for="Input.ConfirmPassword" type="password" autocomplete="new-password" placeholder="Repita sua senha" required />
+            <span asp-validation-for="Input.ConfirmPassword" class="field-error"></span>
+
+            <button class="button button-primary form-submit" type="submit">Criar minha conta <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="form-footer">Já tem uma conta? <a asp-page="/Login" asp-route-returnUrl="@Model.ReturnUrl">Entrar</a></p>
+    </div>
+</section>

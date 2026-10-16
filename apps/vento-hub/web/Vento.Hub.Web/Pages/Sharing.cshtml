@@ -1,0 +1,34 @@
+@page "/sharing/{roomId:guid}"
+@model SharingModel
+@{
+    ViewData["Title"] = Model.RoomName;
+}
+
+<section class="sharing-page container" data-room-id="@Model.RoomId">
+    <p><a asp-page="/Account">← Voltar à conta</a></p>
+    <div class="sharing-heading">
+        <div>
+            <span class="panel-label">VENTO SHARING</span>
+            <h1>@Model.RoomName</h1>
+            <p>Assista à transmissão iniciada pelo aplicativo desktop. O áudio será adicionado com seleção de aplicativos.</p>
+        </div>
+    </div>
+    @if (Model.HasConnection)
+    {
+        <div class="sharing-stage">
+            <video id="shared-video" autoplay playsinline></video>
+            <p id="empty-stage">Aguardando alguém compartilhar a tela.</p>
+        </div>
+        <p id="media-status" role="status">Conectando à sala…</p>
+    }
+    else
+    {
+        <p role="alert">@Model.ViewerError</p>
+    }
+</section>
+
+@if (Model.HasConnection)
+{
+    <script type="application/json" id="media-connection">@Html.Raw(Model.ConnectionJson)</script>
+    <script src="~/js/sharing.js" asp-append-version="true" defer></script>
+}

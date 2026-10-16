@@ -1,0 +1,38 @@
+@page "/entrar"
+@model LoginModel
+@{
+    ViewData["Title"] = "Entrar";
+}
+
+<section class="auth-section container">
+    <div class="auth-intro">
+        <span class="kicker">SUA CONTA VENTO</span>
+        <h1>Bom ter você de volta.</h1>
+        <p>Entre para ver sua conta e acompanhar as aplicações que fazem parte do Vento.</p>
+        <div class="auth-note"><span aria-hidden="true">◇</span><p>A mesma conta é usada no Vento Sharing para desktop.</p></div>
+    </div>
+    <div class="auth-card">
+        <div class="card-topline"></div>
+        <span class="form-kicker">ACESSO À CONTA</span>
+        <h2>Entrar no Vento</h2>
+        <p class="form-subtitle">Seu espaço está logo adiante.</p>
+        @if (Model.Registered)
+        {
+            <div class="notice" role="status">Conta criada. Entre com suas credenciais.</div>
+        }
+        <form method="post" asp-page="/Login" class="auth-form">
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div asp-validation-summary="ModelOnly" class="form-error" role="alert"></div>
+            <label asp-for="Input.Identifier">Usuário ou e-mail</label>
+            <input asp-for="Input.Identifier" type="text" autocomplete="username" placeholder="seu_usuario ou voce@exemplo.com" required />
+            <span asp-validation-for="Input.Identifier" class="field-error"></span>
+
+            <label asp-for="Input.Password">Senha</label>
+            <input asp-for="Input.Password" type="password" autocomplete="current-password" placeholder="Sua senha" required />
+            <span asp-validation-for="Input.Password" class="field-error"></span>
+
+            <button class="button button-primary form-submit" type="submit">Entrar na minha conta <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="form-footer">Ainda não tem uma conta? <a asp-page="/Register" asp-route-returnUrl="@Model.ReturnUrl">Criar conta</a></p>
+    </div>
+</section>

@@ -1,0 +1,35 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Aplicações";
+}
+
+<section class="apps-section" id="aplicacoes">
+    <div class="container">
+        <div class="section-heading">
+            <div>
+                <h1>Aplicações para compartilhar.</h1>
+            </div>
+        </div>
+
+        @if (Model.CatalogUnavailable)
+        {
+            <div class="notice" role="status">O catálogo está temporariamente indisponível. Tente novamente em instantes.</div>
+        }
+        else
+        {
+            @foreach (var application in Model.Applications)
+            {
+                <div class="app-card">
+                    <div class="app-icon" aria-hidden="true"><span class="screen-icon"></span></div>
+                    <div class="app-info">
+                        <div class="app-meta"><span class="status-dot"></span> @(application.Status == "development" ? "EM DESENVOLVIMENTO" : application.Status)</div>
+                        <h3>@application.Name</h3>
+                        <p>@application.Description</p>
+                    </div>
+                    <div class="app-arrow" aria-hidden="true">↗</div>
+                </div>
+            }
+        }
+    </div>
+</section>

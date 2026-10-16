@@ -1,0 +1,112 @@
+@page "/conta"
+@model AccountModel
+@{
+    ViewData["Title"] = "Minha conta";
+}
+
+<section class="account-section container">
+    <div class="account-heading">
+        <div>
+            <span class="kicker">SEU ESPAÇO</span>
+            <h1>Minha conta Vento</h1>
+            <p>Uma identidade para todas as suas aplicações.</p>
+        </div>
+        <form method="post" asp-page-handler="Logout">
+            <button type="submit" class="button button-outline">Sair da conta</button>
+        </form>
+    </div>
+
+    @if (Model.Created)
+    {
+        <div class="notice account-notice" role="status">
+            Conta criada com sucesso. Se você veio do Vento Sharing, volte ao aplicativo e entre com seu usuário ou e-mail e senha.
+        </div>
+    }
+    @if (Model.ImageUpdated || Model.ImageRemoved)
+    {
+        <div class="notice account-notice" role="status">Foto da conta @(Model.ImageRemoved ? "removida" : "atualizada") com sucesso.</div>
+    }
+    @if (Model.ImageError)
+    {
+        <div class="notice account-notice" role="alert">Não foi possível alterar a foto. Use PNG ou JPEG com até 2 MB e 2048 × 2048 pixels.</div>
+    }
+
+    <div class="account-grid">
+        <article class="account-panel">
+            <span class="panel-label">IDENTIDADE</span>
+            <h2>Dados da conta</h2>
+            <div class="account-avatar-row">
+                <div class="account-avatar">
+                    @if (Model.HasImage)
+                    {
+                        <img src="@Url.Page("/Account", "Image")" alt="Foto de @Model.Username" />
+                    }
+                    else
+                    {
+                        <span>@(Model.Username.Length > 0 ? Model.Username[..1].ToUpperInvariant() : "V")</span>
+                    }
+                </div>
+                <div class="account-avatar-actions">
+                    <form method="post" enctype="multipart/form-data" asp-page-handler="Image">
+                        <label for="account-image">Foto da conta</label>
+                        <input id="account-image" type="file" asp-for="UploadedImage" accept="image/png,image/jpeg" required />
+                        <button type="submit" class="button button-outline">Salvar foto</button>
+                    </form>
+                    @if (Model.HasImage)
+                    {
+                        <form method="post" asp-page-handler="RemoveImage">
+                            <button type="submit" class="button button-outline">Remover foto</button>
+                        </form>
+                    }
+                    <small>PNG ou JPEG, até 2 MB.</small>
+                </div>
+            </div>
+            <div class="detail-row"><span>Usuário</span><strong>@Model.Username</strong></div>
+            <div class="detail-row"><span>E-mail</span><strong>@Model.Email</strong></div>
+            <div class="detail-row"><span>Tipo de conta</span><strong>Conta Vento</strong></div>
+        </article>
+        <article class="account-panel">
+            <span class="panel-label">CONEXÕES</span>
+            <h2>Contas vinculadas</h2>
+            <p>Em breve, você poderá vincular Google e Discord a esta conta Vento.</p>
+            <div class="provider-row"><span class="provider-icon">G</span><span>Google</span><span class="provider-status">Em breve</span></div>
+            <div class="provider-row"><span class="provider-icon">◈</span><span>Discord</span><span class="provider-status">Em breve</span></div>
+        </article>
+    </div>
+
+    <div class="account-apps">
+        <div><span class="panel-label">VENTO SHARING</span><h2>Suas salas</h2></div>
+        @if (Model.Rooms.Count == 0)
+        {
+            <p>Entre ou crie uma sala pelo aplicativo para assistir por aqui.</p>
+        }
+        else
+        {
+            @foreach (var room in Model.Rooms)
+            {
+                <div class="account-app-row">
+                    <span class="mini-app-icon" aria-hidden="true">◉</span>
+                    <div><strong>@room.Name</strong><p>@room.ParticipantCount participante(s)</p></div>
+                    <a class="button button-outline" asp-page="/Sharing" asp-route-roomId="@room.Id">Abrir sala</a>
+                </div>
+            }
+        }
+    </div>
+
+    <div class="account-apps">
+        <div><span class="panel-label">SUAS APLICAÇÕES</span><h2>O que você pode explorar</h2></div>
+        <p><a class="button button-primary" href="vento-sharing://login">Abrir Vento Sharing no desktop</a></p>
+        <p>Se o aplicativo não abrir, instale o suporte ao link do Vento Sharing no seu Linux.</p>
+        @if (Model.CatalogUnavailable)
+        {
+            <p>O catálogo está temporariamente indisponível.</p>
+        }
+        else
+        {
+            @foreach (var application in Model.Applications)
+            {
+                <div class="account-app-row"><span class="mini-app-icon" aria-hidden="true">▣</span><div><strong>@application.Name</strong><p>@application.Description</p></div><span class="provider-status">@(application.Status == "development" ? "Em desenvolvimento" : application.Status)</span></div>
+            }
+        }
+    </div>
+</section>

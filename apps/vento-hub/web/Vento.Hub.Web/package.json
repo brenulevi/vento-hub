@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "scripts": {
+    "build:media": "esbuild Client/sharing.js --bundle --minify --format=iife --target=es2022 --outfile=wwwroot/js/sharing.js"
+  },
+  "dependencies": {
+    "livekit-client": "2.23.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

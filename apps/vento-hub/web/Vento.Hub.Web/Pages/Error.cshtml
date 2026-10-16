@@ -1,0 +1,12 @@
+@page
+@model ErrorModel
+@{
+    ViewData["Title"] = "Não foi possível carregar";
+}
+
+<section class="error-section container">
+    <span class="kicker">ALGO SAIU DO CAMINHO</span>
+    <h1>Não foi possível carregar esta página.</h1>
+    <p>Tente novamente em instantes. Se o problema continuar, volte à página inicial.</p>
+    <a class="button button-primary" asp-page="/Index">Voltar ao hub <span aria-hidden="true">→</span></a>
+</section>

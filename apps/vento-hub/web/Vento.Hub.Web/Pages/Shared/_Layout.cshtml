@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1220" />
+    <meta name="description" content="Vento: sua conta e suas aplicações em um só lugar." />
+    <title>@ViewData["Title"] · Vento</title>
+    <link rel="icon" href="~/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="site-shell">
+        <header class="site-header">
+            <nav class="nav container" aria-label="Navegação principal">
+                <a class="brand" asp-page="/Index" aria-label="Vento, página inicial">
+                    <img class="brand-mark" src="~/favicon.svg" alt="" aria-hidden="true" />
+                    <span>vento<span class="brand-dot">.</span></span>
+                </a>
+                <div class="nav-links">
+                    <a asp-page="/Index" asp-fragment="aplicacoes">Aplicações</a>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a class="nav-account" asp-page="/Account">Minha conta <span aria-hidden="true">↗</span></a>
+                    }
+                    else
+                    {
+                        <a asp-page="/Login">Entrar</a>
+                        <a class="nav-account" asp-page="/Register">Criar conta <span aria-hidden="true">↗</span></a>
+                    }
+                </div>
+            </nav>
+        </header>
+
+        <main id="conteudo">
+            @RenderBody()
+        </main>
+
+        <footer class="site-footer">
+            <div class="container footer-inner">
+                <span>Vento <span class="muted">/</span> um lugar para suas aplicações</span>
+                <span>Feito para começar pequeno e crescer junto.</span>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
